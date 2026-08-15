@@ -1,0 +1,107 @@
+﻿
+================================================================================
+BACKTESTING PERIOD: 2026_02
+================================================================================
+
+Loading CSV data from: DataHistory/DAT_MT_XAUUSD_M1_202602.csv
+  Loaded 27429 M1 bars
+  Date range: 2026-02-01 18:06:00 to 2026-02-27 16:58:00
+Resampling M1 data to H1...
+  Resampled to 458 H1 bars
+
+============================================================
+STARTING BACKTEST
+============================================================
+Config: AGGRESSIVE Entry, Risk 1.0%, RR 1:1.5
+Initial Balance: $10000.00
+============================================================
+
+  DEBUG: Found 8 swing lows at bar 100
+  DEBUG: Found 12 swing lows at bar 150
+  DEBUG: Found 12 swing lows at bar 200
+  DEBUG: Potential W pattern at 104, 125, bars_between=21, price_diff=19.31, tolerance=24.99
+    Rally height: 2.21% (min required: 5.00%)
+  DEBUG: Found 14 swing lows at bar 250
+  DEBUG: Potential W pattern at 54, 75, bars_between=21, price_diff=19.31, tolerance=24.99
+    Rally height: 2.21% (min required: 5.00%)
+  DEBUG: Found 15 swing lows at bar 300
+  DEBUG: Potential W pattern at 4, 25, bars_between=21, price_diff=19.31, tolerance=24.99
+    Rally height: 2.21% (min required: 5.00%)
+  DEBUG: Found 15 swing lows at bar 350
+  DEBUG: Found 16 swing lows at bar 400
+  DEBUG: Found 15 swing lows at bar 450
+  DEBUG: Potential W pattern at 110, 128, bars_between=18, price_diff=15.46, tolerance=25.72
+    Rally height: 1.34% (min required: 5.00%)
+
+============================================================
+BACKTEST COMPLETED
+============================================================
+Final Balance: $10000.00
+Total Trades: 0
+============================================================
+
+
+================================================================================
+BACKTESTING PERIOD: 2026_03
+================================================================================
+
+Loading CSV data from: DataHistory/DAT_MT_XAUUSD_M1_202603.csv
+  Loaded 30595 M1 bars
+  Date range: 2026-03-01 18:00:00 to 2026-03-31 23:58:00
+Resampling M1 data to H1...
+  Resampled to 510 H1 bars
+
+============================================================
+STARTING BACKTEST
+============================================================
+Config: AGGRESSIVE Entry, Risk 1.0%, RR 1:1.5
+Initial Balance: $10000.00
+============================================================
+
+  DEBUG: Found 7 swing lows at bar 100
+  DEBUG: Found 10 swing lows at bar 150
+  DEBUG: Found 15 swing lows at bar 200
+  DEBUG: Found 15 swing lows at bar 250
+  DEBUG: Found 17 swing lows at bar 300
+  DEBUG: Found 14 swing lows at bar 350
+  DEBUG: Found 13 swing lows at bar 400
+  DEBUG: Found 10 swing lows at bar 450
+  DEBUG: Found 12 swing lows at bar 500
+
+============================================================
+BACKTEST COMPLETED
+============================================================
+Final Balance: $10000.00
+Total Trades: 0
+============================================================
+
+
+================================================================================
+BACKTESTING PERIOD: 2026_04
+================================================================================
+
+Loading CSV data from: DataHistory/DAT_MT_XAUUSD_M1_202604.csv
+  Loaded 9296 M1 bars
+  Date range: 2026-04-01 00:00:00 to 2026-04-10 16:58:00
+Resampling M1 data to H1...
+  Resampled to 155 H1 bars
+
+============================================================
+STARTING BACKTEST
+============================================================
+Config: AGGRESSIVE Entry, Risk 1.0%, RR 1:1.5
+Initial Balance: $10000.00
+============================================================
+
+  DEBUG: Found 8 swing lows at bar 100
+  DEBUG: Found 13 swing lows at bar 150
+
+============================================================
+BACKTEST COMPLETED
+============================================================
+Final Balance: $10000.00
+Total Trades: 0
+============================================================
+
+All backtests completed!
+Reports saved in: reports/

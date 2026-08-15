@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Devilmod Robot V5.0.8 - Flow Analysis</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0a0e1a; color: #e0e0e0; line-height: 1.7; }
+        .container { max-width: 1050px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; padding: 36px 20px; background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 16px; margin-bottom: 28px; border: 1px solid #2a2a4a; }
+        .header h1 { font-size: 2em; color: #ff8844; }
+        .header .sub { color: #888; font-size: 1.05em; margin-top: 6px; }
+        .header .badge { display: inline-block; padding: 4px 16px; border-radius: 20px; font-weight: bold; margin-top: 10px; }
+        .badge-red { background: #ff4444; color: white; }
+        .badge-green { background: #44ff88; color: #111; }
+        .card { background: #111827; border-radius: 14px; margin-bottom: 22px; overflow: hidden; border: 1px solid #2a2a4a; }
+        .card-h { padding: 14px 22px; font-size: 1.15em; font-weight: bold; }
+        .card-h.orange { background: linear-gradient(90deg, #3a2000, #1a1000); border-left: 4px solid #ff8844; }
+        .card-h.red { background: linear-gradient(90deg, #3a0000, #1a0000); border-left: 4px solid #ff4444; }
+        .card-h.green { background: linear-gradient(90deg, #003a20, #001a10); border-left: 4px solid #44ff88; }
+        .card-h.blue { background: linear-gradient(90deg, #00203a, #001020); border-left: 4px solid #44aaff; }
+        .card-h.gray { background: linear-gradient(90deg, #1a1a1a, #0a0a0a); border-left: 4px solid #888; }
+        .card-b { padding: 18px 22px; }
+        .sec { margin-bottom: 14px; }
+        .sec h3 { color: #ffaa44; font-size: 0.9em; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #2a2a4a; }
+        .sec p, .sec li { color: #ccc; font-size: 0.93em; }
+        .sec ul { padding-left: 18px; }
+        .sec li { margin-bottom: 3px; }
+        .cb { background: #0a0e1a; border: 1px solid #2a2a4a; border-radius: 8px; padding: 12px 16px; margin: 8px 0; font-family: 'Consolas', monospace; font-size: 0.85em; overflow-x: auto; }
+        .cb .on { color: #44ff88; }
+        .cb .off { color: #ff4444; }
+        .cb .warn { color: #ffaa44; }
+        .cb .cmt { color: #666; }
+        .fb { background: #0a0e1a; border: 1px solid #2a2a4a; border-radius: 8px; padding: 14px; margin: 8px 0; }
+        .fs { display: flex; align-items: flex-start; margin-bottom: 6px; }
+        .fn { color: white; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75em; font-weight: bold; margin-right: 8px; flex-shrink: 0; margin-top: 3px; }
+        .fn.r { background: #ff4444; }
+        .fn.g { background: #44ff88; color: #111; }
+        .fn.b { background: #44aaff; color: #111; }
+        .fn.o { background: #ff8844; }
+        .fn.gray { background: #666; }
+        .ft { color: #ccc; font-size: 0.9em; }
+        .dg { background: #0a0e1a; border: 1px solid #2a2a4a; border-radius: 10px; padding: 16px; margin: 10px 0; font-family: 'Consolas', monospace; font-size: 0.82em; line-height: 1.5; overflow-x: auto; white-space: pre; }
+        .tag { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 0.78em; font-weight: bold; margin-right: 4px; }
+        .tag-on { background: #003a20; color: #44ff88; border: 1px solid #44ff88; }
+        .tag-off { background: #3a0000; color: #ff4444; border: 1px solid #ff4444; }
+        .tag-warn { background: #3a2a00; color: #ffaa44; border: 1px solid #ffaa44; }
+        .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .grid2 > div { background: #0a0e1a; border-radius: 8px; padding: 14px; border: 1px solid #2a2a4a; }
+        .grid2 h4 { margin-bottom: 6px; font-size: 0.9em; }
+        .footer { text-align: center; padding: 18px; color: #555; font-size: 0.82em; margin-top: 18px; }
+        table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+        th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #2a2a4a; font-size: 0.9em; }
+        th { color: #ffaa44; background: #1a1a2e; }
+        td { color: #ccc; }
+        td.on { color: #44ff88; }
+        td.off { color: #ff4444; }
+        td.warn { color: #ffaa44; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="header">
+        <h1>Devilmod Robot V5.0.8</h1>
+        <div class="sub">วิเคราะห์ Flow การทำงาน - ทำไม RECOVERY SELL #2-#4 ไม่เปิด</div>
+        <span class="badge badge-red">BUG: Multi-Recovery Blocked</span>
+    </div>
+
+    <!-- ==================== สถานการณ์จากกราฟ ==================== -->
+    <div class="card">
+        <div class="card-h orange">สถานการณ์จากกราฟ</div>
+        <div class="card-b">
+            <div class="sec">
+                <h3>สิ่งที่เห็นในกราฟ</h3>
+                <ul>
+                    <li>จุดที่ 1 ( BUY แถว ~4580): EA เปิด BUY Martingale หลาย orders</li>
+                    <li>จุดที่ 2 ( ราคาลดลง ~4568): ราคาลดลงแรง  loss เพิ่มขึ้น</li>
+                    <li>มี <strong>RECOVERY SELL เปิด 1 จุด</strong> ที่บริเวณจุด 1</li>
+                    <li><strong>ไม่มี RECOVERY SELL #2, #3, #4</strong> แม้ loss จะเพิ่มขึ้นเรื่อยๆ</li>
+                    <li>OrderTotal=17 (นับรวม RECOVERY ด้วย)</li>
+                </ul>
+            </div>
+            <div class="sec">
+                <h3>คำถาม</h3>
+                <p>จากระยะที่ลูกศรชี้ (จุด 1 ไป จุด 2) ราคาลดลงมาก  loss > 2000 pts หลายรอบ ทำไมไม่เปิด RECOVERY SELL #2, #3, #4?</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== OnTick Flow ==================== -->
+    <div class="card">
+        <div class="card-h blue">OnTick() Flow - การทำงานทุก tick</div>
+        <div class="card-b">
+            <div class="sec">
+                <h3>ขั้นตอนการทำงาน (ตามลำดับ)</h3>
+                <div class="fb">
+                    <div class="fs"><div class="fn g">1</div><div class="ft"><span class="tag tag-on">ON</span> CSV Auth check - ตรวจสอบสิทธิ์</div></div>
+                    <div class="fs"><div class="fn g">2</div><div class="ft"><span class="tag tag-on">ON</span> Display_Info() - แสดงข้อมูลบน chart</div></div>
+                    <div class="fs"><div class="fn g">3</div><div class="ft"><span class="tag tag-on">ON</span> TrailingAlls() - ลาก SL ทุก tick (ทุก position)</div></div>
+                    <div class="fs"><div class="fn o">4</div><div class="ft"><span class="tag tag-on">ON</span> CheckOppositeMartingale() - ตรวจ RECOVERY <span class="tag tag-warn">BUG HERE</span></div></div>
+                    <div class="fs"><div class="fn g">5</div><div class="ft"><span class="tag tag-off">OFF</span> Timeout Close - ปิดเมื่อหมดเวลา (Timeout=0 ไม่ทำงาน)</div></div>
+                    <div class="fs"><div class="fn g">6</div><div class="ft"><span class="tag tag-on">ON</span> New Bar Check - หยุดถ้า bar เดิม</div></div>
+                    <div class="fs"><div class="fn g">7</div><div class="ft"><span class="tag tag-on">ON</span> Circuit Breaker - หยุดเมื่อ loss > 5% equity</div></div>
+                    <div class="fs"><div class="fn g">8</div><div class="ft"><span class="tag tag-on">ON</span> CountTrades() - นับ positions <span class="tag tag-warn">BUG: นับ RECOVERY ด้วย</span></div></div>
+                    <div class="fs"><div class="fn g">9</div><div class="ft"><span class="tag tag-on">ON</span> Position Direction - ตรวจว่า BUY หรือ SELL</div></div>
+                    <div class="fs"><div class="fn g">10</div><div class="ft"><span class="tag tag-on">ON</span> Adaptive Distance Check - ตรวจระยะ</div></div>
+                    <div class="fs"><div class="fn g">11</div><div class="ft"><span class="tag tag-on">ON</span> Martingale Order Logic - เปิด order ใหม่</div></div>
+                    <div class="fs"><div class="fn g">12</div><div class="ft"><span class="tag tag-on">ON</span> Modify Positions - แก้ SL/TP</div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== CheckOppositeMartingale Flow ==================== -->
+    <div class="card">
+        <div class="card-h red">CheckOppositeMartingale() - วิเคราะห์ทีละขั้น</div>
+        <div class="card-b">
+            <div class="sec">
+                <h3>Flow การทำงาน (ทุก tick)</h3>
+                <div class="fb">
+                    <div class="fs"><div class="fn g">1</div><div class="ft">เช็ค <code>UseOppositeMartingale</code> = true <span class="tag tag-on">PASS</span></div></div>
+                    <div class="fs"><div class="fn g">2</div><div class="ft">เช็ค <code>CountTrades() < 3</code> = false (17 orders) <span class="tag tag-on">PASS</span></div></div>
+                    <div class="fs"><div class="fn g">3</div><div class="ft">เช็ค <code>existingOpposite >= OppositeMaxLayers</code> = false (1 < 5) <span class="tag tag-on">PASS</span></div></div>
+                    <div class="fs"><div class="fn g">4</div><div class="ft">คำนวณ <code>buyLoss = GetDirectionLossPoints(1)</code> = <strong style="color:#ff4444">-3500 pts</strong> ( loss มาก)</div></div>
+                    <div class="fs"><div class="fn g">5</div><div class="ft">Loop positions: <code>hasBuy = true</code>, <code>hasSell = true</code> (มี RECOVERY SELL 1 ตัว)</div></div>
+                    <div class="fs"><div class="fn g">6</div><div class="ft">คำนวณ lot = 0.01 * 1.2^1 = 0.012 (or loss-based: ~0.05)</div></div>
+                    <div class="fs"><div class="fn g">7</div><div class="ft">เช็ค cooldown = 600s <span class="tag tag-on">PASS</span> (รอ 10 นาที)</div></div>
+                    <div class="fs"><div class="fn r">8</div><div class="ft"><strong>เช็คเงื่อนไข:</strong></div></div>
+                </div>
+            </div>
+            <div class="sec">
+                <h3>เงื่อนไขที่ 8 - จุดที่เกิดปัญหา</h3>
+                <div class="cb">
+<span class="cmt">// Line 508 (โค้ดเดิมก่อนแก้)</span>
+if (hasBuy && buyLoss &lt; -OppositeTriggerPts && <span class="off">!hasSell</span>)
+                                                 <span class="off">^^^^^^^</span>
+<span class="cmt">// hasSell = true (เพราะมี RECOVERY SELL 1 ตัวอยู่แล้ว)</span>
+<span class="cmt">// !hasSell = false</span>
+<span class="cmt">// → เงื่อนไขทั้งหมด = true && true && <strong>false</strong> = <strong>false</strong></span>
+<span class="cmt">// → <strong>ไม่เข้า if block → ไม่เปิด RECOVERY SELL #2!</strong></span>
+                </div>
+            </div>
+            <div class="sec">
+                <h3>ผลลัพธ์</h3>
+                <div class="fb">
+                    <div class="fs"><div class="fn r">X</div><div class="ft"><code>!hasSell</code> = <strong>false</strong> → เข้าเงื่อนไขไม่ได้</div></div>
+                    <div class="fs"><div class="fn r">X</div><div class="ft"><strong>ไม่เปิด RECOVERY SELL #2</strong> แม้ loss จะมากกว่า 2000 pts</div></div>
+                    <div class="fs"><div class="fn r">X</div><div class="ft">รอบถัดไป same result → <strong>ไม่เปิด RECOVERY #3, #4, #5 เลย</strong></div></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== แผนภาพ ==================== -->
+    <div class="card">
+        <div class="card-h orange">แผนภาพ: สิ่งที่เกิดขึ้นจริง vs ที่ควรเป็น</div>
+        <div class="card-b">
+            <div class="dg">
+<strong>สิ่งที่เกิดจริง (โค้ดเดิม):</strong>
+
+time ──────────────────────────────────────────────────►
+
+4580 ──── BUY 1,2,3... (Martingale)
+           │
+           │  loss เพิ่ม: -500 → -1000 → -2000 → -3000 → -4000
+           │
+           ├─── RECOVERY SELL #1 เปิด (loss >= 2000) ✓
+           │         │
+           │         │  !hasSell = false → หยุด!
+           │         │
+           │         ├─── loss -3000 →  ❌ ไม่เปิด #2
+           │         ├─── loss -4000 →  ❌ ไม่เปิด #3
+           │         ├─── loss -5000 →  ❌ ไม่เปิด #4
+           │         └─── loss -6000 →  ❌ ไม่เปิด #5
+           │
+4568 ──── ราคา ณ ปัจจุบัน ( loss มหาศาล)
+
+
+<strong>สิ่งที่ควรเป็น (แก้ไขแล้ว):</strong>
+
+time ──────────────────────────────────────────────────►
+
+4580 ──── BUY 1,2,3... (Martingale)
+           │
+           │  loss เพิ่ม: -500 → -1000 → -2000
+           │
+           ├─── RECOVERY SELL #1 เปิด (loss >= 2000) ✓  เปิดทันที
+           │         │
+           │         │  间距 225 pts (ATR)
+           │
+           ├─── RECOVERY SELL #2 เปิด (loss >= 2000 อีก) ✓
+           │         │
+           │         │  间距 225 pts
+           │
+           ├─── RECOVERY SELL #3 เปิด ✓
+           │         │
+           ├─── RECOVERY SELL #4 เปิด ✓
+           │
+           └─── RECOVERY SELL #5 เปิด ✓ (ถึง MaxLayers)
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== ส่วนที่ใช้งาน vs ไม่ใช้งาน ==================== -->
+    <div class="card">
+        <div class="card-h gray">วิเคราะห์ส่วนที่ใช้งาน vs ไม่ใช้งาน</div>
+        <div class="card-b">
+            <table>
+                <tr>
+                    <th>ระบบ</th>
+                    <th>สถานะ</th>
+                    <th>หมายเหตุ</th>
+                </tr>
+                <tr>
+                    <td>CSV Authentication</td>
+                    <td class="on">ON</td>
+                    <td>ทำงานปกติ</td>
+                </tr>
+                <tr>
+                    <td>TrailingAlls</td>
+                    <td class="on">ON</td>
+                    <td>ลาก SL ทุก tick (ไม่ filter RECOVERY)</td>
+                </tr>
+                <tr>
+                    <td>CheckOppositeMartingale</td>
+                    <td class="off">BUG</td>
+                    <td><code>!hasSell</code> ปิดกั้น Multi-Recovery</td>
+                </tr>
+                <tr>
+                    <td>Timeout Close</td>
+                    <td class="off">OFF</td>
+                    <td>Timeout = 0 → ไม่ทำงาน</td>
+                </tr>
+                <tr>
+                    <td>Circuit Breaker</td>
+                    <td class="on">ON</td>
+                    <td>หยุดเมื่อ loss > 5% equity (แค่หยุด ไม่ปิด)</td>
+                </tr>
+                <tr>
+                    <td>Trend Filter (EMA)</td>
+                    <td class="off">OFF</td>
+                    <td>UseTrendFilter = false</td>
+                </tr>
+                <tr>
+                    <td>Dynamic SL (ATR)</td>
+                    <td class="on">ON</td>
+                    <td>ใช้กับ order หลัก (ไม่ใช่ RECOVERY)</td>
+                </tr>
+                <tr>
+                    <td>Adaptive Distance</td>
+                    <td class="on">ON</td>
+                    <td>ลด distance เมื่อ trade เยอะ</td>
+                </tr>
+                <tr>
+                    <td>CountTrades</td>
+                    <td class="warn">WARN</td>
+                    <td>นับ RECOVERY ด้วย → MaxTrades บวม</td>
+                </tr>
+                <tr>
+                    <td>Martingale Order Logic</td>
+                    <td class="on">ON</td>
+                    <td>เปิด BUY/SELL ตาม distance</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- ==================== สรุป ==================== -->
+    <div class="card">
+        <div class="card-h green">สรุปการวิเคราะห์</div>
+        <div class="card-b">
+            <div class="sec">
+                <h3>สาเหตุหลักที่ RECOVERY SELL #2-#4 ไม่เปิด</h3>
+                <ul>
+                    <li><strong>สาเหตุ:</strong> เงื่อนไข <code>!hasSell</code> ใน CheckOppositeMartingale()</li>
+                    <li><strong>กลไก:</strong> RECOVERY SELL #1 เปิด → <code>hasSell = true</code> → <code>!hasSell = false</code> → รอบถัดไปเข้าเงื่อนไขไม่ได้</li>
+                    <li><strong>ผลกระทบ:</strong> เปิด RECOVERY ได้แค่ 1 ครั้ง แล้วหยุด  loss ยังเพิ่มขึ้นเรื่อยๆ แต่ไม่เปิด RECOVERY ใหม่</li>
+                </ul>
+            </div>
+            <div class="sec">
+                <h3>ส่วนที่ทำงานปกติ</h3>
+                <ul>
+                    <li>TrailingAlls - ลาก SL ปกติ</li>
+                    <li>Circuit Breaker - หยุดเมื่อ loss > 5%</li>
+                    <li>Dynamic SL (ATR) - คำนวณ SL จาก ATR</li>
+                    <li>Martingale Logic - เปิด order หลักปกติ</li>
+                </ul>
+            </div>
+            <div class="sec">
+                <h3>ส่วนที่มีปัญหา</h3>
+                <ul>
+                    <li><code>!hasSell</code> → Multi-Recovery ถูกปิดกั้น</li>
+                    <li>CountTrades นับ RECOVERY → MaxTrades บวม</li>
+                    <li>RECOVERY SL=0, TP=0 → ไม่มี protection</li>
+                </ul>
+            </div>
+            <div class="sec">
+                <h3>วิธีแก้ (ที่ทำไปแล้วในโค้ด)</h3>
+                <ul>
+                    <li>เปลี่ยน <code>!hasSell</code> → <code>existingOpposite < OppositeMaxLayers</code></li>
+                    <li>วัด distance จาก RECOVERY ล่าสุด (ไม่ใช่ BUY แรก)</li>
+                    <li>ใช้ Dynamic SL (ATR) เป็น distance ระหว่าง RECOVERY</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        Devilmod Robot V5.0.8 - OnTick Flow Analysis Report<br>
+        Generated: 04/08/2026
+    </div>
+</div>
+</body>
+</html>

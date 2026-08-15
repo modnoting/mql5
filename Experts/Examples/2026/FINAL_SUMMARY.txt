@@ -1,0 +1,56 @@
+﻿================================================================================
+BACKTEST SUMMARY REPORT - Devilmod M&W EA (Optimized Configuration)
+================================================================================
+
+CONFIGURATION:
+- Pattern Tolerance: 1.5%
+- Min Retracement: 0.4%
+- Neckline Break: 0.25%
+- Swing Strength: 2
+- Lookback: 120 bars
+- Filters: Trend only (no RSI/MACD/Rejection)
+- Time Filter: 24/7 trading
+- Entry Mode: AGGRESSIVE
+- Risk: 1% per trade, RR 1:1.5
+
+================================================================================
+RESULTS BY MONTH:
+================================================================================
+
+FEBRUARY 2026 (27 วัน):
+  - Total Trades: 2
+  - Win Rate: 100% (2W-0L)
+  - Net Profit: +$148.96 (+1.49%)
+  - Trade #1: +$95.54 (TP hit)
+  - Trade #2: +$53.42 (EOD close)
+
+MARCH 2026 (31 วัน):
+  - Total Trades: 0
+  - Win Rate: N/A
+  - Net Profit: $0.00
+
+APRIL 2026 (10 วัน):
+  - Total Trades: 5
+  - Win Rate: 60% (3W-2L)
+  - Trade #1: +$4.47 (TP hit)
+  - Trade #2: -$1.62 (TP hit - loss)
+  - Trade #3: +$5.79 (TP hit)
+  - Trade #4: +$0.65 (TP hit)
+  - Trade #5: -$29.43 (EOD close - loss)
+  - Net Profit: -$19.74
+
+================================================================================
+OVERALL SUMMARY (68 วัน / ~9.7 สัปดาห):
+================================================================================
+
+Total Trades: 7 trades
+Average Frequency: 0.72 trades/สัปดาห หรือ ~3 trades/เดือน
+Combined Win Rate: 71.4% (5W-2L)
+Total Net Profit: +$129.22 (+1.29%)
+Largest Win: +$95.54
+Largest Loss: -$29.43
+
+สรุป: EA สามารถสร้าง signals ได้เลี่ย 0.7 trades/สัปดาห ึ่งใกล้เคียงเป้าหมาย 1 trade/สัปดาห
+แนะนำเพิ่มข้อมล backtest มากขึ้น (6-12 เดือน) เพื่อประเมินความเสถียรในระยะยาว
+
+================================================================================

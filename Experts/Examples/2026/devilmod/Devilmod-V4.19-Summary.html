@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Devilmod Robot V4.19 - สรุปการอัพเดท</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Sarabun', 'Segoe UI', Tahoma, sans-serif; background: #1a1a2e; color: #e0e0e0; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        h1 { text-align: center; color: #00d4ff; font-size: 2em; margin-bottom: 10px; }
+        h2 { color: #ff6b6b; margin: 25px 0 15px 0; border-bottom: 2px solid #ff6b6b; padding-bottom: 8px; }
+        h3 { color: #ffd93d; margin: 15px 0 10px 0; }
+        .version-badge { text-align: center; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 15px; border-radius: 10px; margin-bottom: 25px; }
+        .version-badge span { font-size: 1.8em; font-weight: bold; color: #fff; }
+        .card { background: #16213e; border-radius: 10px; padding: 20px; margin: 15px 0; border-left: 4px solid #00d4ff; }
+        .card.warning { border-left-color: #ff6b6b; }
+        .card.success { border-left-color: #4ecdc4; }
+        .card.info { border-left-color: #ffd93d; }
+        .change-item { display: flex; align-items: flex-start; margin: 10px 0; padding: 10px; background: #0f3460; border-radius: 8px; }
+        .change-icon { font-size: 1.5em; margin-right: 12px; min-width: 35px; text-align: center; }
+        .change-text { flex: 1; }
+        .change-text strong { color: #00d4ff; }
+        .old { color: #ff6b6b; text-decoration: line-through; }
+        .new { color: #4ecdc4; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th { background: #0f3460; color: #00d4ff; padding: 12px; text-align: left; }
+        td { padding: 10px 12px; border-bottom: 1px solid #1a1a2e; }
+        tr:hover { background: #16213e; }
+        .highlight { background: #1a3a5c; padding: 2px 6px; border-radius: 4px; }
+        .flow-box { background: #0f3460; padding: 15px; border-radius: 8px; margin: 10px 0; font-family: monospace; font-size: 0.95em; line-height: 1.8; }
+        .arrow { color: #ffd93d; font-weight: bold; }
+        .footer { text-align: center; margin-top: 30px; padding: 15px; color: #888; font-size: 0.9em; }
+        ul { padding-left: 20px; }
+        li { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Devilmod Robot EA</h1>
+        <div class="version-badge">
+            <span>V4.19</span><br>
+            <small>สรุปการอัพเดทจาก V4.16</small>
+        </div>
+
+        <h2>สิ่งที่เปลี่ยนแปลง</h2>
+
+        <div class="card success">
+            <h3>1. Trailing Stop - ปรับปรุงครั้งใหญ่</h3>
+            <div class="change-item">
+                <div class="change-icon">舊</div>
+                <div class="change-text">
+                    <strong>V4.16:</strong> ทำ Trailing Stop <span class="old">เฉพาะ order แรก</span> เท่านั้น
+                </div>
+            </div>
+            <div class="change-item">
+                <div class="change-icon">新</div>
+                <div class="change-text">
+                    <strong>V4.19:</strong> ทำ Trailing Stop <span class="new">กับทุก order</span> ที่มีกำไรพอ
+                </div>
+            </div>
+            <div class="flow-box">
+                เดิม: ปิด SL ให้เฉพาะ order เก่าสุดตัวเดียว<br>
+                ใหม่: <span class="arrow">→</span> ปิด SL ให้ <span class="new">ทุก order</span> ที่ราคาห่างจาก Entry >= TrailingPoints
+            </div>
+            <p><strong>ผลลัพธ์:</strong> ทุก order ที่มีกำไรจะถูก lock กำไรไว้ ไม่ใช่แค่ตัวแรก</p>
+        </div>
+
+        <div class="card info">
+            <h3>2. Runaway Recovery System</h3>
+            <p>ระบบกู้คืนเมื่อราคาหลุด — ถูกเรียกจาก <code>ManageMarginRisk()</code> ทุก tick</p>
+            <div class="flow-box">
+                เงื่อนไข:<br>
+                1. <span class="arrow">→</span> ครบทุก MaxTrades (เช่น 15/15)<br>
+                2. <span class="arrow">→</span> ราคาห่างจาก order สุดท้าย >= RecoveryDistancePoints<br>
+                3. <span class="arrow">→</span> Cooldown 300 วินาที<br>
+                <br>
+                การทำงาน: <span class="new">ปิด order เก่าสุด</span> ที่กำลังขาดทุน เพื่อลดความเสี่ยง
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>3. รายละเอียดไฟล์</h3>
+            <table>
+                <tr><th>รายการ</th><th>V4.16</th><th>V4.19</th></tr>
+                <tr><td>เวอร์ชัน</td><td class="old">4.16</td><td class="new">4.19</td></tr>
+                <tr><td>TrailingStop</td><td class="old">เฉพาะ order แรก</td><td class="new">ทุก order</td></tr>
+                <tr><td>Trade Comment</td><td class="old">V4.15-*</td><td class="new">V4.19-*</td></tr>
+                <tr><td>Description</td><td>ไม่มี</td><td class="new">มีรายละเอียดระบบ</td></tr>
+                <tr><td>Lots Default</td><td>0.10</td><td>0.10 (เหมือนเดิม)</td></tr>
+                <tr><td>Runaway Recovery</td><td>มี</td><td>มี (เหมือนเดิม)</td></tr>
+                <tr><td>Daily Limits</td><td>มี</td><td>มี (เหมือนเดิม)</td></tr>
+            </table>
+        </div>
+
+        <h2>ระบบการทำงานทั้งหมด (V4.19)</h2>
+
+        <div class="card">
+            <ol>
+                <li><strong>Entry Signal</strong> — 3-Layer (Trend + Momentum + Price Action)</li>
+                <li><strong>Martingale Open</strong> — เปิด Order ใหม่เมื่อราคาห่าง >= MartingaleDistancePoints</li>
+                <li><strong>Runaway Close</strong> — ปิด Order เก่าสุดเมื่อครบทั้ง MaxTrades + ราคาไหลเกิน TriggerDistance</li>
+                <li><strong>Trailing Stop</strong> — เลื่อน SL สำหรับ <span class="new">ทุก Order</span> เมื่อกำไร >= TrailingPoints</li>
+                <li><strong>UpdateMartingaleTP</strong> — ตั้ง TP เท่ากันทุก Order จาก Weighted Average</li>
+                <li><strong>Runaway Recovery</strong> — ปิด Order เก่าสุดเมื่อ MaxTrades + ราคาห่างเกิน RecoveryDistancePoints</li>
+                <li><strong>Margin Critical</strong> — ปิดทั้งหมดเมื่อ Margin >= 90%</li>
+            </ol>
+        </div>
+
+        <h2>Flow การทำงาน (OnTick)</h2>
+
+        <div class="card">
+            <div class="flow-box">
+                1. ตรวจสอบ CSV Authentication<br>
+                2. Display_Info() — แสดงผลบนหน้าจอ<br>
+                3. CheckDailyLimits() — ตรวจสอบ Daily Loss / Profit Target<br>
+                4. <span class="arrow">ManageMarginRisk()</span> — ทำงานทุก tick<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;├── Margin Critical → ปิดทั้งหมด<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;├── Price Runaway Detection<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;├── Runaway Close (เมื่อ MaxTrades + ราคาไหล)<br>
+                &nbsp;&nbsp;&nbsp;&nbsp;<span class="new">└── Runaway Recovery (ปิด order เก่าสุด)</span><br>
+                5. ตรวจสอบเวลา (วัน/ชั่วโมง)<br>
+                6. ตรวจสอบ Bar ใหม่<br>
+                7. <span class="new">TrailingStopFirstOrder()</span> — ทำกับทุก order<br>
+                8. UpdateMartingaleTP() — ตั้ง TP ใหม่<br>
+                9. ตรวจสอบ Entry Signal<br>
+                10. เปิด Order ใหม่ (ถ้ามีสัญญาณ)
+            </div>
+        </div>
+
+        <h2>พารามิเตอร์ที่สำคัญ</h2>
+
+        <div class="card">
+            <table>
+                <tr><th>พารามิเตอร์</th><th>ค่า Default</th><th>คำอธิบาย</th></tr>
+                <tr><td>Lots</td><td>0.10</td><td>ขนาด Lot เริ่มต้น</td></tr>
+                <tr><td>MaxTrades</td><td>15</td><td>จำนวน Order สูงสุด</td></tr>
+                <tr><td>Multiplier</td><td>1.15</td><td>ตัวคูณ Lot สำหรับ Martingale</td></tr>
+                <tr><td>TrailingPoints</td><td>1200</td><td>ระยะ Trailing Stop (Points)</td></tr>
+                <tr><td>MartingaleDistancePoints</td><td>1500</td><td>ระยะห่างสำหรับเปิด Order ใหม่</td></tr>
+                <tr><td>TriggerDistance</td><td>500</td><td>ระยะ Price Runaway</td></tr>
+                <tr><td>RecoveryDistance</td><td>800</td><td>ระยะ Runaway Recovery</td></tr>
+                <tr><td>MarginCritical</td><td>90%</td><td>ปิดทั้งหมดเมื่อ Margin ถึง</td></tr>
+            </table>
+        </div>
+
+        <div class="footer">
+            Devilmod Robot V4.19 | Updated from V4.16 + V4.18 improvements
+        </div>
+    </div>
+</body>
+</html>

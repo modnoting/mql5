@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายงานวิเคราะห์ EA - RSI_Stoch_Momentum_V2</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 20px; background: #f5f5f5; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+        h2 { color: #34495e; margin-top: 30px; }
+        h3 { color: #7f8c8d; }
+        .section { background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #3498db; }
+        .active { border-left-color: #27ae60; background: #e8f5e9; }
+        .inactive { border-left-color: #e74c3c; background: #ffebee; }
+        .warning { border-left-color: #f39c12; background: #fff3cd; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background: #3498db; color: white; }
+        tr:nth-child(even) { background: #f2f2f2; }
+        .badge { display: inline-block; padding: 5px 10px; border-radius: 15px; font-size: 12px; font-weight: bold; }
+        .badge-active { background: #27ae60; color: white; }
+        .badge-inactive { background: #e74c3c; color: white; }
+        .code { background: #2c3e50; color: #ecf0f1; padding: 10px; border-radius: 5px; font-family: monospace; overflow-x: auto; }
+        .summary-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; margin: 20px 0; }
+        .metric { text-align: center; margin: 10px; }
+        .metric-value { font-size: 24px; font-weight: bold; }
+        .metric-label { font-size: 14px; opacity: 0.9; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 รายงานวิเคราะห์ Expert Advisor</h1>
+        <p><strong>ไฟล์:</strong> RSI_Stoch_Momentum_EA_V2.mq5 | <strong>เวอร์ชัน:</strong> 2.01</p>
+
+        <div class="summary-box">
+            <div style="display: flex; justify-content: space-around; flex-wrap: wrap;">
+                <div class="metric">
+                    <div class="metric-value">4</div>
+                    <div class="metric-label">Indicator ที่ใช้</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">1</div>
+                    <div class="metric-label">Timeframe (M1)</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">3/4</div>
+                    <div class="metric-label">Min Confirmation</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value">1:1.5</div>
+                    <div class="metric-label">Risk:Reward</div>
+                </div>
+            </div>
+        </div>
+
+        <h2>✅ ส่วนที่ใช้งาน (Active Components)</h2>
+        
+        <div class="section active">
+            <h3>1. ระบบ Indicator (ใช้งานจริง)</h3>
+            <table>
+                <tr><th>Indicator</th><th>พารามิเตอร์</th><th>วัตถุประสงค์</th></tr>
+                <tr><td>EMA 200</td><td>PERIOD_M1, 200 periods</td><td>กำหนด Trend Direction (ราคาอยู่เหนือ/ใต้ EMA)</td></tr>
+                <tr><td>RSI 14</td><td>Oversold=35, Overbought=65</td><td>หาจุดกลับตัว (Divergence + Reversal)</td></tr>
+                <tr><td>Stochastic K/D</td><td>K=5, D=3, Slowing=3</td><td>ยืนยันสัญญาณ Entry ด้วย Crossover</td></tr>
+                <tr><td>Momentum 14</td><td>Period=14</td><td>วัดแรงเหวี่ยงของราคา</td></tr>
+            </table>
+        </div>
+
+        <div class="section active">
+            <h3>2. ระบบ Entry Signal (Scoring System)</h3>
+            <p>ใช้ระบบให้คะแนนจาก 4 เงื่อนไข ต้องมีคะแนน ≥ <strong>MinConfirmation (3)</strong> และ Trend ต้องสอดคล้อง</p>
+            
+            <table>
+                <tr><th>Buy Conditions</th><th>Sell Conditions</th></tr>
+                <tr>
+                    <td>
+                        ✓ ราคา > EMA 200 (Uptrend)<br>
+                        ✓ RSI ≤ 40 และกำลังขึ้น<br>
+                        ✓ Stoch K &gt; D + Cross up<br>
+                        ✓ Momentum &gt; 100 หรือกำลังเพิ่ม
+                    </td>
+                    <td>
+                        ✓ ราคา < EMA 200 (Downtrend)<br>
+                        ✓ RSI ≥ 60 และกำลังลง<br>
+                        ✓ Stoch K &lt; D + Cross down<br>
+                        ✓ Momentum &lt; 100 หรือกำลังลด
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="section active">
+            <h3>3. ระบบ Risk Management</h3>
+            <ul>
+                <li><strong>Stop Loss:</strong> 1500 points (15 pips สำหรับ 5 _digits)</li>
+                <li><strong>Take Profit:</strong> 2250 points (22.5 pips)</li>
+                <li><strong>Lot Size:</strong> 0.05 (คงที่)</li>
+                <li><strong>Max Spread:</strong> 300 points (ป้องกัน spreads สูง)</li>
+                <li><strong>Trailing Stop:</strong> เริ่มที่ 800 points, Step 150 points</li>
+            </ul>
+        </div>
+
+        <div class="section active">
+            <h3>4. ระบบ Time Filter</h3>
+            <p>เปิดเทรดเฉพาะช่วง <strong>08:00 - 20:00</strong> (เวลาท้องถิ่น) เพื่อหลีกเลี่ยงช่วงตลาดเงียบ</p>
+        </div>
+
+        <h2>❌ ส่วนที่ไม่ใช้งาน / ข้อจำกัด</h2>
+
+        <div class="section inactive">
+            <h3>1. ฟังก์ชัน RSI Divergence (ไม่ถูกเรียกใช้)</h3>
+            <div class="code">
+bool CheckRSIBullishDivergence() { ... }<br>
+bool CheckRSIBearishDivergence() { ... }
+            </div>
+            <p>⚠️ มีการสร้างฟังก์ชันไว้แต่ไม่ได้เรียกใช้ใน GetEntrySignal()</p>
+        </div>
+
+        <div class="section inactive">
+            <h3>2. Dynamic Lot Sizing</h3>
+            <p>ไม่มีการคำนวณ Lot แบบ % Risk ต่อเทรด ใช้ Lot คงที่ 0.05 ซึ่ง:</p>
+            <ul>
+                <li>ไม่เหมาะกับพอร์ตทุนต่างกัน</li>
+                <li>ไม่มีการปรับตาม volatility</li>
+            </ul>
+        </div>
+
+        <div class="section inactive">
+            <h3>3. ระบบ Close Position</h3>
+            <p>ไม่มีระบบปิด position อัตโนมัติ (Partial close, Break-even, Emergency close)</p>
+        </div>
+
+        <div class="section warning">
+            <h3>4. ข้อควรระวัง</h3>
+            <ul>
+                <li><strong>Timeframe M1:</strong> เหมาะสำหรับ Scalping แต่อาจมีสัญญาณหลอกจำนวนมาก</li>
+                <li><strong>Stochastic ซ้ำซ้อน:</strong> สร้าง handleStochMain และ handleStochSignal แต่ใช้ indicator ตัวเดียวกัน (ควรใช้ตัวเดียว)</li>
+                <li><strong>Order Filling:</strong> ใช้ ORDER_FILLING_FOK ซึ่งอาจไม่เหมาะกับทุก broker</li>
+            </ul>
+        </div>
+
+        <h2>📈 สรุปการไหลเวียนของโปรแกรม</h2>
+
+        <div class="section">
+            <div class="code">
+OnInit()<br>
+  ├── สร้าง CTrade object<br>
+  ├── สร้าง Indicator Handles (EMA, RSI, Stoch, Momentum)<br>
+  └── ตรวจสอบ handle validity<br><br>
+
+OnTick()  (เรียกทุก tick)<br>
+  ├── ตรวจสอบ Time Filter (ถ้าเปิดใช้)<br>
+  ├── ตรวจสอบ New Bar (M1)<br>
+  ├── ManageTrailingStop() (ถ้าเปิดใช้)<br>
+  ├── GetEntrySignal() → return 1 (Buy), -1 (Sell), 0 (No signal)<br>
+  │     ├── ดึงค่า indicators shift 1-2<br>
+  │     ├── คำนวณ buyScore/sellScore จาก 4 เงื่อนไข<br>
+  │     └── ตรวจสอบ MinConfirmation ≥ 3 + Trend<br>
+  └── ExecuteBuy() / ExecuteSell() ถ้ามีสัญญาณ<br>
+        ├── ตรวจสอบ HasOpenPosition()<br>
+        ├── ตรวจสอบ Spread<br>
+        ├── คำนวณ Lot, SL, TP<br>
+        └── ส่ง Order ผ่าน CTrade
+            </div>
+        </div>
+
+        <h2>💡 ข้อเสนอแนะในการปรับปรุง</h2>
+
+        <div class="section">
+            <ol>
+                <li>ใช้ Stochastic ตัวเดียวแทน 2 ตัวที่ซ้ำกัน</li>
+                <li>เพิ่มระบบ Dynamic Lot Size ตาม % Risk</li>
+                <li>เรียกใช้ฟังก์ชัน RSI Divergence ที่เขียนไว้แล้ว</li>
+                <li>เพิ่มระบบ Break-even อัตโนมัติ</li>
+                <li>พิจารณาเปลี่ยน ORDER_FILLING_FOK เป็น ORDER_FILLING_IOC หรือ RETURN</li>
+                <li>เพิ่ม backtesting report output</li>
+            </ol>
+        </div>
+
+        <p style="text-align: center; color: #7f8c8d; margin-top: 30px;">
+            รายงานนี้สร้างโดยระบบวิเคราะห์โค้ด | วันที่: 8 สิงหาคม 2569
+        </p>
+    </div>
+</body>
+</html>

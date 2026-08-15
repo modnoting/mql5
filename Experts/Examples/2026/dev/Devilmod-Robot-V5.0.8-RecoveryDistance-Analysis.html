@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Devilmod Robot V5.0.8 - RECOVERY Distance Analysis</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0a0e1a; color: #e0e0e0; line-height: 1.7; }
+        .container { max-width: 1050px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; padding: 36px 20px; background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 16px; margin-bottom: 28px; border: 1px solid #2a2a4a; }
+        .header h1 { font-size: 2em; color: #ff8844; text-shadow: 0 0 20px rgba(255,136,68,0.3); }
+        .header .subtitle { color: #888; font-size: 1.05em; margin-top: 6px; }
+        .header .badge { display: inline-block; background: #ff8844; color: white; padding: 4px 16px; border-radius: 20px; font-weight: bold; margin-top: 10px; }
+
+        .card { background: #111827; border-radius: 14px; margin-bottom: 22px; overflow: hidden; border: 1px solid #2a2a4a; }
+        .card-header { padding: 14px 22px; font-size: 1.15em; font-weight: bold; }
+        .card-header.orange { background: linear-gradient(90deg, #3a2000, #1a1000); border-left: 4px solid #ff8844; }
+        .card-header.blue { background: linear-gradient(90deg, #00203a, #001020); border-left: 4px solid #44aaff; }
+        .card-header.red { background: linear-gradient(90deg, #3a0000, #1a0000); border-left: 4px solid #ff4444; }
+        .card-header.green { background: linear-gradient(90deg, #003a20, #001a10); border-left: 4px solid #44ff88; }
+        .card-body { padding: 18px 22px; }
+        .section { margin-bottom: 14px; }
+        .section h3 { color: #ffaa44; font-size: 0.9em; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #2a2a4a; }
+        .section p, .section li { color: #ccc; font-size: 0.93em; }
+        .section ul { padding-left: 18px; }
+        .section li { margin-bottom: 3px; }
+
+        .code-block { background: #0a0e1a; border: 1px solid #2a2a4a; border-radius: 8px; padding: 12px 16px; margin: 8px 0; font-family: 'Consolas', monospace; font-size: 0.85em; overflow-x: auto; }
+        .code-block .old { color: #ff6666; text-decoration: line-through; }
+        .code-block .new { color: #44ff88; }
+        .code-block .cmt { color: #666; }
+
+        .flow-box { background: #0a0e1a; border: 1px solid #2a2a4a; border-radius: 8px; padding: 14px; margin: 8px 0; }
+        .flow-step { display: flex; align-items: flex-start; margin-bottom: 6px; }
+        .flow-num { background: #ff4444; color: white; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75em; font-weight: bold; margin-right: 8px; flex-shrink: 0; margin-top: 3px; }
+        .flow-num.green { background: #44ff88; color: #111; }
+        .flow-num.blue { background: #44aaff; color: #111; }
+        .flow-text { color: #ccc; font-size: 0.9em; }
+
+        .status { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 0.78em; font-weight: bold; }
+        .status-problem { background: #3a0000; color: #ff4444; border: 1px solid #ff4444; }
+        .status-fix { background: #003a20; color: #44ff88; border: 1px solid #44ff88; }
+
+        .diagram { background: #0a0e1a; border: 1px solid #2a2a4a; border-radius: 10px; padding: 16px; margin: 10px 0; font-family: 'Consolas', monospace; font-size: 0.82em; line-height: 1.5; overflow-x: auto; white-space: pre; }
+
+        .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .comparison > div { background: #0a0e1a; border-radius: 8px; padding: 14px; border: 1px solid #2a2a4a; }
+        .comparison h4 { margin-bottom: 6px; font-size: 0.9em; }
+        .comparison .before h4 { color: #ff4444; }
+        .comparison .after h4 { color: #44ff88; }
+
+        .footer { text-align: center; padding: 18px; color: #555; font-size: 0.82em; margin-top: 18px; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <div class="header">
+        <h1>Devilmod Robot V5.0.8</h1>
+        <div class="subtitle">วิเคราะห์ปัญหา RECOVERY Distance ที่เพิ่มขึ้นเรื่อยๆ</div>
+        <div class="badge">ANALYSIS REPORT</div>
+    </div>
+
+    <!-- สิ่งที่เกิดขึ้น -->
+    <div class="card">
+        <div class="card-header orange">สิ่งที่เกิดขึ้นจากกราฟ</div>
+        <div class="card-body">
+            <div class="section">
+                <h3>สถานการณ์</h3>
+                <ul>
+                    <li>ออเดอร์หลัก: <strong>BUY</strong> เปิดหลาย orders (martingale)</li>
+                    <li>ราคา <strong>ลดลงต่อเนื่อง</strong> (Uptrend แล้วกลับตัว)</li>
+                    <li>EA เปิด <strong>RECOVERY SELL</strong> ที่จุด 1, 2, 3, 4, 5, 6</li>
+                    <li>แต่ละจุด <strong>ห่างจากจุดแรกมากขึ้นเรื่อยๆ</strong></li>
+                </ul>
+            </div>
+            <div class="section">
+                <h3>สังเกตจากกราฟ</h3>
+                <ul>
+                    <li>จุด 1 (RECOVERY SELL #1): ห่างจาก BUY แรก ~200 pts</li>
+                    <li>จุด 2 (RECOVERY SELL #2): ห่าง ~400 pts</li>
+                    <li>จุด 3 (RECOVERY SELL #3): ห่าง ~700 pts</li>
+                    <li>จุด 4-6: ห่างเพิ่มขึ้นเรื่อยๆ</li>
+                    <li><strong>Result:</strong> RECOVERY เปิดช้า ไม่ทัน cover loss กลางทาง</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Root Cause -->
+    <div class="card">
+        <div class="card-header red">วิเคราะห์ Root Cause (2 สาเหตุหลัก)</div>
+        <div class="card-body">
+
+            <!-- Cause 1 -->
+            <div class="section">
+                <h3>สาเหตุที่ 1: เงื่อนไข <code>!hasSell</code> ปิดกั้น Multi-RECOVERY</h3>
+                <span class="status-problem">BUG</span>
+                <div class="code-block">
+<span class="cmt">// CheckOppositeMartingale() line 508</span>
+if (hasBuy && buyLoss &lt; -OppositeTriggerPts && <span class="old">!hasSell</span>)
+{
+    // เปิด RECOVERY SELL...
+}
+
+<span class="cmt">// hasSell ถูก set จาก loop นี้ (line 449-461):</span>
+bool hasBuy = false, hasSell = false;
+for (each position) {
+    if (type == BUY) hasBuy = true;
+    if (type == SELL) hasSell = true;  <span class="cmt">// รวม RECOVERY SELL ด้วย!</span>
+}
+                </div>
+                <div class="flow-box">
+                    <div class="flow-step">
+                        <div class="flow-num">1</div>
+                        <div class="flow-text">RECOVERY SELL #1 เปิดสำเร็จ → <code>hasSell = true</code></div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">2</div>
+                        <div class="flow-text">รอบถัดไป: <code>!hasSell</code> = <strong>false</strong> → <strong>ไม่เปิด RECOVERY SELL #2!</strong></div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">3</div>
+                        <div class="flow-text">ดังนั้น RECOVERY SELL #2-6 ไม่ได้มาจาก Opposite Martingale</div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">4</div>
+                        <div class="flow-text">SELL #2-6 มาจาก <strong>Regular Martingale SELL</strong> ใน OnTick() แทน</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cause 2 -->
+            <div class="section">
+                <h3>สาเหตุที่ 2: Distance วัดจาก BUY แรก ไม่ใช่ RECOVERY ล่าสุด</h3>
+                <span class="status-problem">BUG</span>
+                <div class="code-block">
+<span class="cmt">// CheckOppositeMartingale() line 527-532</span>
+double lastBuyPrice = <span class="old">FindLastBuyPrice()</span>;  <span class="cmt">// ราคา BUY ล่าสุด</span>
+int currentDist = GetAdaptiveDistance(existingBuys + existingOpposite);
+double pointDiff = (lastBuyPrice - currentAsk) / _Point;  <span class="cmt">// วัดจาก BUY</span>
+if (pointDiff &lt; currentDist) return;
+<span class="cmt">// ปัญหา: วัด distance จาก BUY entry ไม่ใช่จาก RECOVERY ล่าสุด</span>
+                </div>
+                <div class="flow-box">
+                    <div class="flow-step">
+                        <div class="flow-num">1</div>
+                        <div class="flow-text">BUY แรกเปิดที่ 4580</div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">2</div>
+                        <div class="flow-text">ราคาลดลงมา 4570 → RECOVERY SELL #1 เปิด (ห่าง 100 pts จาก BUY)</div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">3</div>
+                        <div class="flow-text">ราคาลดลงมา 4555 → ต้องการ distance จาก BUY = 25 pts (adaptive ลดลง)</div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">4</div>
+                        <div class="flow-text">แต่ <code>pointDiff = (4580 - 4555)/point = 250 pts</strong> >> 25 pts</div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">5</div>
+                        <div class="flow-text">→ RECOVERY SELL #2 เปิดที่ 4555 (ห่าง 250 pts จาก BUY แรก)</div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">6</div>
+                        <div class="flow-text">ราคาลดลงมา 4530 → <code>pointDiff = 500 pts</strong> >> adaptive dist</div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">7</div>
+                        <div class="flow-text">→ RECOVERY SELL #3 เปิดที่ 4530 (ห่าง 500 pts จาก BUY แรก)</div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num blue">!</div>
+                        <div class="flow-text"><strong>ยิ่งราคาลด ยิ่งห่าง เพราะวัดจาก BUY แรก ไม่ใช่ RECOVERY ล่าสุด</strong></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional: Adaptive Distance shrinks -->
+            <div class="section">
+                <h3>สาเหตุเสริม: Adaptive Distance ยิ่งเล็กลง แต่ distance จริงยิ่งห่าง</h3>
+                <div class="code-block">
+<span class="cmt">// GetAdaptiveDistance() - ยิ่ง trade เยอะ ยิ่ง distance เล็กลง</span>
+tradeCount &lt;= 5  → distance = 1200 pts
+tradeCount &lt;= 10 → distance = 804 pts  (1200 * 0.67)
+tradeCount &lt;= 15 → distance = 504 pts  (1200 * 0.42)
+
+<span class="cmt">// แต่ distance ที่คำนวณจริง:</span>
+<span class="old">pointDiff = (lastBuyPrice - currentAsk) / _Point</span>
+<span class="cmt">// วัดจาก BUY แรก → ยิ่งราคาลด ยิ่งห่าง → distance check ผ่านง่าย</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Diagram -->
+    <div class="card">
+        <div class="card-header blue">แผนภาพ: ปัญหา Distance ที่เพิ่มขึ้น</div>
+        <div class="card-body">
+            <div class="diagram">
+price
+  |
+4580 ─── BUY 1,2,3... (Avg ~4580)
+  |        \
+  |         \  ← pointDiff วัดจาก BUY แรก
+  |          \
+4570 ─── RECOVERY SELL #1 ──── ห่าง 100 pts จาก BUY
+  |           \
+  |            \  ← pointDiff วัดจาก BUY แรก (เหมือนเดิม!)
+  |             \
+4555 ─── RECOVERY SELL #2 ──── ห่าง 250 pts จาก BUY
+  |              \
+  |               \
+4530 ─── RECOVERY SELL #3 ──── ห่าง 500 pts จาก BUY
+  |                \
+  |                 \
+4510 ─── RECOVERY SELL #4 ──── ห่าง 700 pts จาก BUY
+  |
+  └─────────────────────────────────────────────────── time
+
+  ** ทุกจุดวัด distance จาก BUY แรก  →  ยิ่งราคาลด ยิ่งห่าง!
+  ** ถ้าวัดจาก RECOVERY ล่าสุด → distance จะคงที่/ลดลง
+            </div>
+        </div>
+    </div>
+
+    <!-- Comparison -->
+    <div class="card">
+        <div class="card-header green">วิธีแก้ไข (เปรียบเทียบ Before/After)</div>
+        <div class="card-body">
+            <div class="comparison">
+                <div class="before">
+                    <h4>ก่อนแก้ (Current)</h4>
+                    <ul>
+                        <li><code>!hasSell</code> → เปิด RECOVERY ได้แค่ 1 ครั้ง</li>
+                        <li>Regular Martingale ต้องรับภาระเปิด SELL ที่เหลือ</li>
+                        <li>Distance วัดจาก <code>FindLastBuyPrice()</code></li>
+                        <li>ห่างจาก BUY แรกมากขึ้นเรื่อยๆ</li>
+                        <li>RECOVERY ไม่ทัน cover loss กลางทาง</li>
+                    </ul>
+                </div>
+                <div class="after">
+                    <h4>หลังแก้ (Proposed)</h4>
+                    <ul>
+                        <li>เปลี่ยนเป็น <code>existingOpposite &lt; OppositeMaxLayers</code></li>
+                        <li>เปิด RECOVERY ได้หลายครั้ง ตาม loss ที่เพิ่ม</li>
+                        <li>Distance วัดจาก <code>FindLastRecoveryPrice()</code></li>
+                        <li>ห่างจาก RECOVERY ล่าสุดคงที่</li>
+                        <li>RECOVERY cover loss ได้ทันเวลา</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="section" style="margin-top: 16px;">
+                <h3>โค้ดที่ต้องแก้ - แก้ที่ 1: เปลี่ยนเงื่อนไข Multi-RECOVERY</h3>
+                <div class="code-block">
+<span class="cmt">// === Before ===</span>
+if (hasBuy && buyLoss &lt; -OppositeTriggerPts && <span class="old">!hasSell</span>)
+
+<span class="cmt">// === After ===</span>
+if (hasBuy && buyLoss &lt; -OppositeTriggerPts && <span class="new">existingOpposite &lt; OppositeMaxLayers</span>)
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>โค้ดที่ต้องแก้ - แก้ที่ 2: Distance วัดจาก RECOVERY ล่าสุด</h3>
+                <div class="code-block">
+<span class="cmt">// === Before ===</span>
+double lastBuyPrice = <span class="old">FindLastBuyPrice()</span>;
+double pointDiff = (<span class="old">lastBuyPrice</span> - currentAsk) / _Point;
+
+<span class="cmt">// === After: เพิ่ม function หา RECOVERY ล่าสุด ===</span>
+<span class="new">double FindLastRecoverySellPrice()</span>
+{
+   double lastPrice = 0;
+   ulong lastTicket = 0;
+   for (each position) {
+      if (comment contains "RECOVERY" && type == SELL) {
+         if (ticket > lastTicket) {
+            lastPrice = POSITION_PRICE_OPEN;
+            lastTicket = ticket;
+         }
+      }
+   }
+   return lastPrice;
+}
+
+<span class="cmt">// ใช้ RECOVERY ล่าสุดเป็นจุดวัด distance</span>
+<span class="new">double lastRecoverySellPrice = FindLastRecoverySellPrice();</span>
+double basePrice = (lastRecoverySellPrice > 0) ? lastRecoverySellPrice : lastBuyPrice;
+double pointDiff = (basePrice - currentAsk) / _Point;
+                </div>
+            </div>
+
+            <div class="section">
+                <h3>แผนภาพ: Distance หลังแก้ไข</h3>
+                <div class="diagram">
+price
+  |
+4580 ─── BUY 1,2,3...
+  |        \
+  |         \
+4570 ─── RECOVERY SELL #1 ──── ห่าง 100 pts (from BUY)
+  |
+  |    ← วัดจาก RECOVERY #1 (ไม่ใช่ BUY แรก)
+  |
+4560 ─── RECOVERY SELL #2 ──── ห่าง ~100 pts (from #1)  ✓
+  |
+  |    ← วัดจาก RECOVERY #2
+  |
+4550 ─── RECOVERY SELL #3 ──── ห่าง ~100 pts (from #2)  ✓
+  |
+  |    ← วัดจาก RECOVERY #3
+  |
+4540 ─── RECOVERY SELL #4 ──── ห่าง ~100 pts (from #3)  ✓
+  |
+  └─────────────────────────────────────────────────── time
+
+  ** ทุกจุดวัด distance จาก RECOVERY ล่าสุด → ห่างคงที่!
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="card">
+        <div class="card-header green">สรุปผลลัพธ์</div>
+        <div class="card-body">
+            <div class="section">
+                <h3>สรุปปัญหา</h3>
+                <ul>
+                    <li><strong>ปัญหาหลัก:</strong> RECOVERY SELL เปิดห่างจาก BUY แรกมากขึ้นเรื่อยๆ ตามราคาที่ลดลง</li>
+                    <li><strong>สาเหตุ 1:</strong> เงื่อนไข <code>!hasSell</code> ปิดกั้น Multi-RECOVERY → ต้องพึ่ง Regular Martingale ที่ไม่ได้ออกแบบมาเพื่อ recovery</li>
+                    <li><strong>สาเหตุ 2:</strong> Distance วัดจาก <code>FindLastBuyPrice()</code> (BUY แรก) แทนที่จะวัดจาก RECOVERY ล่าสุด</li>
+                    <li><strong>สาเหตุ 3:</strong> <code>GetAdaptiveDistance()</code> ลด distance ลงเมื่อ trade เยอะ แต่ distance จริง (จาก BUY แรก) กลับเพิ่มขึ้น</li>
+                </ul>
+            </div>
+            <div class="section">
+                <h3>วิธีแก้ไข</h3>
+                <ul>
+                    <li><strong>แก้ 1:</strong> เปลี่ยน <code>!hasSell</code> → <code>existingOpposite &lt; OppositeMaxLayers</code> ให้เปิด RECOVERY ได้หลายครั้ง</li>
+                    <li><strong>แก้ 2:</strong> เพิ่ม function <code>FindLastRecoverySellPrice()</code> แล้วใช้ distance จาก RECOVERY ล่าสุด</li>
+                    <li><strong>แก้ 3:</strong> ลด cooldown จาก 600s เหลือ ~120s เพื่อให้ RECOVERY ตอบสนองเร็วขึ้น</li>
+                </ul>
+            </div>
+            <div class="section">
+                <h3>ผลลัพธ์ที่คาดหวัง</h3>
+                <ul>
+                    <li>RECOVERY SELL เปิดทุกๆ ~100 pts ห่างกันคงที่ (ไม่ใช่ห่างจาก BUY แรก)</li>
+                    <li>RECOVERY cover loss ได้ทันเวลา ไม่ต้องรอราคาลดลงมาก</li>
+                    <li>Regular Martingale รับภาระน้อยลง</li>
+                    <li>MaxTrades ไม่บวมเพราะนับ RECOVERY แยก (แก้แล้ว Bug #4)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        Devilmod Robot V5.0.8 - RECOVERY Distance Analysis Report<br>
+        Generated: 03/08/2026
+    </div>
+</div>
+</body>
+</html>

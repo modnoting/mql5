@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Devilmod V5.0.8 - Recovery SELL Fix Analysis</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 20px; background: #1a1a2e; color: #e0e0e0; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        h1 { color: #e94560; text-align: center; border-bottom: 2px solid #e94560; padding-bottom: 10px; }
+        h2 { color: #0f3460; background: #16213e; padding: 10px 15px; border-left: 4px solid #e94560; margin-top: 30px; }
+        h3 { color: #e94560; }
+        .card { background: #16213e; border-radius: 8px; padding: 20px; margin: 15px 0; border: 1px solid #0f3460; }
+        .error { border-left: 4px solid #e94560; background: #2d1b1b; }
+        .fix { border-left: 4px solid #00b894; background: #1b2d1b; }
+        .info { border-left: 4px solid #0984e3; background: #1b1b2d; }
+        .warning { border-left: 4px solid #fdcb6e; background: #2d2b1b; }
+        code { background: #0d1117; padding: 2px 6px; border-radius: 3px; font-family: 'Consolas', monospace; color: #e94560; }
+        .code-block { background: #0d1117; padding: 15px; border-radius: 5px; overflow-x: auto; font-family: 'Consolas', monospace; font-size: 13px; line-height: 1.5; margin: 10px 0; }
+        .highlight { color: #00b894; font-weight: bold; }
+        .old { color: #e94560; text-decoration: line-through; }
+        .new { color: #00b894; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th { background: #0f3460; color: white; padding: 12px; text-align: left; }
+        td { padding: 10px 12px; border-bottom: 1px solid #333; }
+        tr:hover { background: #1a1a3e; }
+        .summary-box { background: linear-gradient(135deg, #0f3460, #16213e); border-radius: 10px; padding: 20px; margin: 20px 0; }
+        .metric { display: inline-block; text-align: center; padding: 15px 25px; margin: 5px; background: #1a1a2e; border-radius: 8px; min-width: 120px; }
+        .metric-value { font-size: 24px; font-weight: bold; color: #e94560; }
+        .metric-label { font-size: 12px; color: #888; margin-top: 5px; }
+        ul { line-height: 1.8; }
+        li { margin: 5px 0; }
+        .tag { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; margin: 2px; }
+        .tag-bug { background: #e94560; color: white; }
+        .tag-fix { background: #00b894; color: white; }
+        .tag-info { background: #0984e3; color: white; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+<h1>Devilmod-Robot-2026 V5.0.8</h1>
+<h1 style="font-size: 24px; color: #00b894;">Recovery SELL/BUY Fix Analysis</h1>
+
+<div class="summary-box">
+    <h2 style="margin-top:0; background:none; border:none; padding:0;">สรุปผลการวิเคราะห์</h2>
+    <div style="display: flex; flex-wrap: wrap; justify-content: center;">
+        <div class="metric">
+            <div class="metric-value">4</div>
+            <div class="metric-label">จุดที่แก้ไข</div>
+        </div>
+        <div class="metric">
+            <div class="metric-value">3</div>
+            <div class="metric-label">Root Causes</div>
+        </div>
+        <div class="metric">
+            <div class="metric-value">~10+</div>
+            <div class="metric-label">SL ถูก Hit (Loss)</div>
+        </div>
+        <div class="metric">
+            <div class="metric-value">~2000-3000</div>
+            <div class="metric-label">pts ต่อครั้ง</div>
+        </div>
+    </div>
+</div>
+
+<h2>1. ปัญหาที่พบ (Root Causes)</h2>
+
+<div class="card error">
+    <h3><span class="tag tag-bug">BUG</span> ปัญหาที่ 1: Recovery Entry Price ไม่ Offset</h3>
+    <p><strong>ตำแหน่ง:</strong> Lines 597, 638, 694, 743</p>
+    <p><strong>อาการ:</strong> RECOVERY BUY/SELL เปิดที่ <code>currentAsk</code>/<code>currentBid</code> ตรงๆ ไม่ offset จากราคา entry ของ position ที่กำลังขาดทุน</p>
+    <div class="code-block">
+<span class="old">// โค้ดเดิม (V5.0.8) - ผิด</span>
+ExtTrade.Buy(oppositeLot, _Symbol, <span class="old">currentAsk</span>, 0, 0, ...);  <span class="old">// ← เปิดที่ราคาตลาด = จุดเดียวกับ SELL ที่ขาดทุน</span>
+ExtTrade.Sell(oppositeLot, _Symbol, <span class="old">currentBid</span>, 0, 0, ...); <span class="old">// ← เปิดที่ราคาตลาด = จุดเดียวกับ BUY ที่ขาดทุน</span>
+
+<span class="new">// โค้ดใหม่ (V5.09 Fix) - ถูก</span>
+double recoveryEntry = <span class="highlight">lastRecoverySell - OppositeRecoveryDistance * _Point</span>;
+ExtTrade.Buy(oppositeLot, _Symbol, <span class="highlight">recoveryEntry</span>, recoverySL, recoveryTP, ...);
+    </div>
+    <p><strong>ผลกระทบ:</strong> RECOVERY BUY เปิดที่ ~4570.975 (จุดเดียวกับ SELL ที่ขาดทุน ~2000 pts) → SL ถูก hit ซ้ำๆ ~10+ ครั้ง แต่ละครั้ง损失 ~2000-3000 pts กับ lot 2.0</p>
+</div>
+
+<div class="card error">
+    <h3><span class="tag tag-bug">BUG</span> ปัญหาที่ 2: SL=0, TP=0 สำหรับ Recovery Orders</h3>
+    <p><strong>ตำแหน่ง:</strong> ทุก Recovery order placement (4 จุด)</p>
+    <p><strong>อาการ:</strong> Recovery orders ไม่มี Stop Loss หรือ Take Profit</p>
+    <div class="code-block">
+<span class="old">// โค้ดเดิม</span>
+ExtTrade.Buy(oppositeLot, _Symbol, currentAsk, <span class="old">0</span>, <span class="old">0</span>, ...);  <span class="old">// ← SL=0, TP=0 = ไม่มีการป้องกัน</span>
+
+<span class="new">// โค้ดใหม่</span>
+double recoverySL = <span class="highlight">StopLong(recoveryEntry, (int)dynamicSL)</span>;
+double recoveryTP = <span class="highlight">TakeLong(recoveryEntry, (int)g_pips_120)</span>;
+ExtTrade.Buy(oppositeLot, _Symbol, recoveryEntry, <span class="highlight">recoverySL</span>, <span class="highlight">recoveryTP</span>, ...);
+    </div>
+    <p><strong>ผลกระทบ:</strong> Recovery positions ไม่มี SL = ขาดทุนไม่จำกัด, ไม่มี TP = ไม่รู้จุดทำกำไร</p>
+</div>
+
+<div class="card warning">
+    <h3><span class="tag tag-bug">BUG</span> ปัญหาที่ 3: Layer Counter ไม่รีเซ็ตถูกต้อง</h3>
+    <p><strong>ตำแหน่ง:</strong> Lines 537-539</p>
+    <p><strong>อาการ:</strong> <code>g_oppositeLayerCount</code> ถูกรีเซ็ตเป็น 0 เมื่อ <code>existingOpposite == 0</code> แต่ counter นี้อาจค้างอยู่เมื่อ recovery positions ถูกปิดโดย SL</p>
+    <p><strong>ผลกระทบ:</strong> Layer counter อาจไม่accurate ทำให้คำนวณ Lot ผิด</p>
+</div>
+
+<h2>2. Log Analysis (จาก Backtest 2026.05.05)</h2>
+
+<div class="card info">
+    <h3>ลำดับเหตุการณ์ที่เกิดปัญหา</h3>
+    <table>
+        <tr><th>เวลา</th><th>เหตุการณ์</th><th>ราคา</th><th>Loss</th></tr>
+        <tr><td>12:24:31</td><td>BUY RECOVERY Layer 1 เปิด</td><td>4570.975</td><td>SellLoss=-2000.2 pts</td></tr>
+        <tr><td>12:24:31</td><td>SL set ที่ 4571.828 (+0.85 pts)</td><td>-</td><td>-</td></tr>
+        <tr><td>12:27:30</td><td>SL ถูก hit ( BUY RECOVERY ขาดทุน)</td><td>-</td><td>-</td></tr>
+        <tr><td>12:39:36</td><td>BUY RECOVERY Layer 2 เปิด (ซ้ำอีก)</td><td>4571.066</td><td>SellLoss=-2169.5 pts</td></tr>
+        <tr><td>12:42:29</td><td>SL ถูก hit อีกครั้ง</td><td>-</td><td>-</td></tr>
+        <tr><td>13:02:40</td><td>BUY RECOVERY Layer 3 เปิด</td><td>4570.975</td><td>SellLoss=-2122.7 pts</td></tr>
+        <tr><td>13:05:32</td><td>SL ถูก hit</td><td>-</td><td>-</td></tr>
+        <tr><td>...</td><td>... (เกิดซ้ำ ~10+ ครั้ง)</td><td>...</td><td>...</td></tr>
+    </table>
+    <p><strong>รูปแบบ:</strong> RECOVERY BUY เปิดที่ ~4570-4571 ทุกครั้ง → SL ถูก hit ทันที → เปิดใหม่ที่จุดเดิม → ขาดทุนซ้ำ</p>
+</div>
+
+<h2>3. สิ่งที่แก้ไข (Fixes Applied)</h2>
+
+<div class="card fix">
+    <h3><span class="tag tag-fix">FIX</span> Fix 1: Recovery Entry Offset Price</h3>
+    <p>คำนวณราคา Entry ของ Recovery order โดย offset จาก:</p>
+    <ul>
+        <li><strong>BUY RECOVERY (เมื่อ SELL ขาดทุน):</strong> <code>recoveryEntry = lastRecoverySell - OppositeRecoveryDistance * _Point</code></li>
+        <li><strong>SELL RECOVERY (เมื่อ BUY ขาดทุน):</strong> <code>recoveryEntry = lastRecoveryBuy + OppositeRecoveryDistance * _Point</code></li>
+        <li><strong>Layer 1 SELL RECOVERY:</strong> <code>recoveryEntry = currentBid + OppositeRecoveryDistance * _Point</code></li>
+        <li><strong>Layer 1 BUY RECOVERY:</strong> <code>recoveryEntry = currentAsk - OppositeRecoveryDistance * _Point</code></li>
+    </ul>
+    <p><strong>ผลลัพธ์:</strong> Recovery orders จะเปิดที่ราคาที่ offset จาก position ที่ขาดทุน ไม่ใช่ที่ราคาตลาดเดียวกัน</p>
+</div>
+
+<div class="card fix">
+    <h3><span class="tag tag-fix">FIX</span> Fix 2: SL/TP สำหรับ Recovery Orders</h3>
+    <p>ใช้ฟังก์ชันเดียวกับ Normal trades:</p>
+    <ul>
+        <li><code>recoverySL = StopLong(recoveryEntry, (int)dynamicSL)</code> สำหรับ BUY</li>
+        <li><code>recoverySL = StopShort(recoveryEntry, (int)dynamicSL)</code> สำหรับ SELL</li>
+        <li><code>recoveryTP = TakeLong(recoveryEntry, (int)g_pips_120)</code> สำหรับ BUY</li>
+        <li><code>recoveryTP = TakeShort(recoveryEntry, (int)g_pips_120)</code> สำหรับ SELL</li>
+    </ul>
+    <p><strong>ผลลัพธ์:</strong> Recovery orders มี SL/TP ชัดเจน ไม่ขาดทุนไม่จำกัด</p>
+</div>
+
+<div class="card fix">
+    <h3><span class="tag tag-fix">FIX</span> Fix 3: Enhanced Logging</h3>
+    <p>เพิ่มข้อมูลใน Print log:</p>
+    <ul>
+        <li><code>Entry=</code> ราคา Entry ที่คำนวณได้</li>
+        <li><code>SL=</code> ราคา Stop Loss</li>
+        <li><code>TP=</code> ราคา Take Profit</li>
+    </ul>
+    <p><strong>ผลลัพธ์:</strong> สามารถ debug ได้ง่ายขึ้นจาก Journal</p>
+</div>
+
+<h2>4. ตัวอย่างผลลัพธ์หลังแก้ไข</h2>
+
+<div class="card info">
+    <h3>สมมติ: SELL Entry ที่ 4580.00, ขาดทุน -2000 pts</h3>
+    <table>
+        <tr><th>รายการ</th><th>ก่อนแก้ (V5.0.8)</th><th>หลังแก้ (V5.09)</th></tr>
+        <tr>
+            <td>RECOVERY BUY Entry</td>
+            <td class="old">4570.975 (市场价格 = จุดเดียวกับ SELL)</td>
+            <td class="new">4568.00 (4580.00 - 1200 pts offset)</td>
+        </tr>
+        <tr>
+            <td>RECOVERY BUY SL</td>
+            <td class="old">0 (ไม่มี SL)</td>
+            <td class="new">4567.00 (dynamicSL คำนวณ)</td>
+        </tr>
+        <tr>
+            <td>RECOVERY BUY TP</td>
+            <td class="old">0 (ไม่มี TP)</td>
+            <td class="new">4572.00 (g_pips_120 คำนวณ)</td>
+        </tr>
+        <tr>
+            <td>สถานการณ์</td>
+            <td>ทั้ง SELL และ BUY ขาดทุนที่จุดเดียวกัน</td>
+            <td>BUY ต่ำกว่า SELL → hedge ได้ผลเมื่อราคาลง</td>
+        </tr>
+    </table>
+</div>
+
+<h2>5. Parameters ที่เกี่ยวข้อง</h2>
+
+<div class="card">
+    <table>
+        <tr><th>Parameter</th><th>Default</th><th>คำอธิบาย</th></tr>
+        <tr><td><code>UseOppositeMartingale</code></td><td>true</td><td>เปิด/ปิด ระบบ Opposite Martingale</td></tr>
+        <tr><td><code>OppositeTriggerPts</code></td><td>2000.0</td><td>จำนวน pts ที่ขาดทุนก่อนเปิด Recovery</td></tr>
+        <tr><td><code>OppositeMaxLots</code></td><td>2.0</td><td>Lot สูงสุดสำหรับ Recovery orders</td></tr>
+        <tr><td><code>OppositeMaxLayers</code></td><td>5</td><td>จำนวน Layer สูงสุด</td></tr>
+        <tr><td><code>OppositeRecoveryDistance</code></td><td>1200.0</td><td>ระยะ offset จาก position ล่าสุด (pts)</td></tr>
+        <tr><td><code>OppositeCooldownSec</code></td><td>120</td><td>ระยะห่างระหว่าง Recovery layers (วินาที)</td></tr>
+    </table>
+</div>
+
+<h2>6. ข้อแนะนำเพิ่มเติม</h2>
+
+<div class="card warning">
+    <ul>
+        <li><strong>ทดสอบ Backtest อีกครั้ง</strong> หลังแก้ไขเพื่อยืนยันผลลัพธ์</li>
+        <li><strong>ตรวจสอบ Lot Sizing:</strong> Lot 2.0 สำหรับ Recovery อาจมากเกินไป แนะนำให้ทดสอบกับ Lot เล็กๆ ก่อน</li>
+        <li><strong>ตรวจสอบ OppositeRecoveryDistance:</strong> ค่า 1200 pts อาจต้องปรับตาม volatility ของ symbol</li>
+        <li><strong>ตรวจสอบ Cooldown:</strong> ค่า 120 sec อาจสั้นเกินไป ทำให้ recovery trigger ซ้ำเร็ว</li>
+        <li><strong>พิจารณา SL สำหรับ Recovery:</strong> dynamicSL อาจคำนวณ SL ที่ใกล้เกินไปสำหรับ recovery positions</li>
+    </ul>
+</div>
+
+<div class="card" style="text-align: center; background: linear-gradient(135deg, #0f3460, #16213e);">
+    <p style="font-size: 14px; color: #888;">Devilmod-Robot-2026 V5.0.8 → V5.09 Fix</p>
+    <p style="font-size: 12px; color: #666;">วันที่วิเคราะห์: 2026-08-04 | Symbol: XAUUSDc | Backtest: 2026.05.05</p>
+</div>
+
+</div>
+</body>
+</html>

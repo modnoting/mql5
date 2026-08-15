@@ -1,0 +1,2 @@
+trade_id,open_time,close_time,type,signal_type,entry_price,exit_price,sl_price,tp_price,lot_size,profit_pips,profit_amount,status,filter_count,adx,roc,rsi
+1,596,2026-04-10 11:30:00,BUY,BULLISH_ENGULFING,4781.555,4762.286428571429,4762.286428571429,4820.092142857144,0.52,-217.68571428571704,-11.319657142857286,SL,4/4,25.8924346312117,0.3121672864208302,60.15193559908831

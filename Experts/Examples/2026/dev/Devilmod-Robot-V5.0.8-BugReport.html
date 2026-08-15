@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Devilmod Robot V5.0.8 - Bug Analysis Report</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0a0e1a; color: #e0e0e0; line-height: 1.7; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+
+        .header { text-align: center; padding: 40px 20px; background: linear-gradient(135deg, #1a1a2e, #16213e); border-radius: 16px; margin-bottom: 30px; border: 1px solid #2a2a4a; }
+        .header h1 { font-size: 2.2em; color: #ff4444; text-shadow: 0 0 20px rgba(255,68,68,0.3); }
+        .header .subtitle { color: #888; font-size: 1.1em; margin-top: 8px; }
+        .header .version-badge { display: inline-block; background: #ff4444; color: white; padding: 4px 16px; border-radius: 20px; font-weight: bold; margin-top: 12px; }
+
+        .summary-box { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 30px; }
+        .summary-item { background: #111827; border-radius: 12px; padding: 20px; text-align: center; border: 1px solid #2a2a4a; }
+        .summary-item .label { color: #888; font-size: 0.85em; text-transform: uppercase; letter-spacing: 1px; }
+        .summary-item .value { font-size: 2em; font-weight: bold; margin-top: 4px; }
+        .summary-item .value.red { color: #ff4444; }
+        .summary-item .value.green { color: #44ff88; }
+        .summary-item .value.yellow { color: #ffaa44; }
+
+        .bug-card { background: #111827; border-radius: 14px; margin-bottom: 24px; overflow: hidden; border: 1px solid #2a2a4a; }
+        .bug-header { padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+        .bug-header.critical { background: linear-gradient(90deg, #3a0000, #1a0000); border-left: 4px solid #ff4444; }
+        .bug-header.warning { background: linear-gradient(90deg, #3a2a00, #1a1500); border-left: 4px solid #ffaa44; }
+        .bug-header.info { background: linear-gradient(90deg, #002a3a, #001520); border-left: 4px solid #44aaff; }
+        .bug-title { font-size: 1.2em; font-weight: bold; }
+        .bug-severity { padding: 3px 12px; border-radius: 12px; font-size: 0.8em; font-weight: bold; }
+        .severity-critical { background: #ff4444; color: white; }
+        .severity-high { background: #ff8844; color: white; }
+        .severity-medium { background: #ffaa44; color: #111; }
+
+        .bug-body { padding: 20px 24px; }
+        .bug-section { margin-bottom: 16px; }
+        .bug-section h3 { color: #ffaa44; font-size: 0.95em; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid #2a2a4a; }
+        .bug-section p, .bug-section li { color: #ccc; font-size: 0.95em; }
+        .bug-section ul { padding-left: 20px; }
+        .bug-section li { margin-bottom: 4px; }
+
+        .code-block { background: #0a0e1a; border: 1px solid #2a2a4a; border-radius: 8px; padding: 14px 18px; margin: 10px 0; font-family: 'Consolas', 'Courier New', monospace; font-size: 0.88em; overflow-x: auto; }
+        .code-block .line-old { color: #ff6666; text-decoration: line-through; }
+        .code-block .line-new { color: #44ff88; }
+        .code-block .comment { color: #666; }
+
+        .flow-box { background: #0a0e1a; border: 1px solid #2a2a4a; border-radius: 8px; padding: 16px; margin: 10px 0; }
+        .flow-step { display: flex; align-items: flex-start; margin-bottom: 8px; }
+        .flow-num { background: #ff4444; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8em; font-weight: bold; margin-right: 10px; flex-shrink: 0; margin-top: 2px; }
+        .flow-num.green { background: #44ff88; color: #111; }
+        .flow-text { color: #ccc; font-size: 0.93em; }
+
+        .status-badge { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 0.8em; font-weight: bold; }
+        .status-fixed { background: #004422; color: #44ff88; border: 1px solid #44ff88; }
+
+        .conclusion { background: linear-gradient(135deg, #1a2a1a, #0a1a0a); border: 1px solid #2a4a2a; border-radius: 14px; padding: 24px; margin-top: 30px; }
+        .conclusion h2 { color: #44ff88; margin-bottom: 12px; }
+        .conclusion ul { padding-left: 20px; }
+        .conclusion li { color: #ccc; margin-bottom: 6px; }
+
+        .footer { text-align: center; padding: 20px; color: #555; font-size: 0.85em; margin-top: 20px; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- Header -->
+    <div class="header">
+        <h1>Devilmod Robot V5.0.8</h1>
+        <div class="subtitle">Bug Analysis & Fix Report</div>
+        <div class="version-badge">FIXED 4 BUGS</div>
+    </div>
+
+    <!-- Summary -->
+    <div class="summary-box">
+        <div class="summary-item">
+            <div class="label"> bugs found</div>
+            <div class="value red">4</div>
+        </div>
+        <div class="summary-item">
+            <div class="label">bugs fixed</div>
+            <div class="value green">4</div>
+        </div>
+        <div class="summary-item">
+            <div class="label">files changed</div>
+            <div class="value yellow">1</div>
+        </div>
+    </div>
+
+    <!-- Bug #1 -->
+    <div class="bug-card">
+        <div class="bug-header critical">
+            <div class="bug-title">Bug #1: วนลูป Modify ไม่รู้จบ (sl: 0.000 -> 0.000)</div>
+            <span class="bug-severity severity-critical">CRITICAL</span>
+        </div>
+        <div class="bug-body">
+            <div class="bug-section">
+                <h3>สถานะ</h3>
+                <span class="status-badge status-fixed">FIXED</span>
+            </div>
+            <div class="bug-section">
+                <h3>สิ่งที่เกิดขึ้น</h3>
+                <p>EA เรียก <code>PositionModify()</code> ทุก tick/bar ด้วยค่า SL=0, TP= เดิมซ้ำๆ ไม่หยุด ทำให้ server รับคำสั่ง modify มหาศาล</p>
+            </div>
+            <div class="bug-section">
+                <h3>วิเคราะห์ Root Cause</h3>
+                <div class="flow-box">
+                    <div class="flow-step">
+                        <div class="flow-num">1</div>
+                        <div class="flow-text"><code>g_pips_128 = 0.0</code> (input default) ทำให้ <code>StopLong(price, 0)</code> return 0 เสมอ</div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">2</div>
+                        <div class="flow-text"><code>newSL = 0</code> สำหรับทุก BUY position</div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">3</div>
+                        <div class="flow-text">เช็ค <code>slValid = (newSL == 0 || newSL &lt; bid)</code> = <strong>true เสมอ</strong> เพราะ newSL==0</div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">4</div>
+                        <div class="flow-text"><code>PositionModify(ticket, 0, tp)</code> ถูกเรียกทุกรอบ</div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">5</div>
+                        <div class="flow-text"><code>gi_356</code> ไม่เคยถูก reset เป็น false หลัง modify loop</div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">6</div>
+                        <div class="flow-text">บาร์ถัดไปเข้า modify loop อีก วนไม่จบ</div>
+                    </div>
+                </div>
+            </div>
+            <div class="bug-section">
+                <h3>โค้ดที่แก้ (บรรทัด ~1115-1155)</h3>
+                <div class="code-block">
+<span class="comment">// เพิ่ม: เก็บค่าปัจจุบัน</span>
+<span class="line-new">double currentSL = PositionGetDouble(POSITION_SL);</span>
+<span class="line-new">double currentTP = PositionGetDouble(POSITION_TP);</span>
+
+<span class="comment">// เพิ่ม: เปรียบเทียบก่อน modify</span>
+<span class="line-old">if (slValid &amp;&amp; tpValid)</span>
+<span class="line-new">if (slValid &amp;&amp; tpValid &amp;&amp; (newSL != currentSL || newTP != currentTP))</span>
+    ExtTrade.PositionModify(ticket, newSL, newTP);
+
+<span class="comment">// เพิ่ม: reset flag หลังจบ loop</span>
+<span class="line-new">gi_356 = false;</span>
+                </div>
+            </div>
+            <div class="bug-section">
+                <h3>ผลกระทบ</h3>
+                <p>ไม่มีการเปลี่ยน SL จริง (SL ยังคง 0.000 เหมือนเดิมทุกครั้ง) แต่ server ถูก bomb ด้วยคำสั่ง modify ทำให้ CPU ทำงานหนักและอาจถูก broker 限制</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bug #3 -->
+    <div class="bug-card">
+        <div class="bug-header critical">
+            <div class="bug-title">Bug #3: TrailingAlls ถูกเรียกซ้ำ (ทุก tick + ทุก bar)</div>
+            <span class="bug-severity severity-critical">CRITICAL</span>
+        </div>
+        <div class="bug-body">
+            <div class="bug-section">
+                <h3>สถานะ</h3>
+                <span class="status-badge status-fixed">FIXED</span>
+            </div>
+            <div class="bug-section">
+                <h3>สิ่งที่เกิดขึ้น</h3>
+                <p>ฟังก์ชัน <code>TrailingAlls()</code> ถูกเรียก <strong>2 ครั้งต่อ tick</strong>: ครั้งแรกที่ line 680 (ก่อน new-bar check) และครั้งที่สองที่ line 745-756 (inside position loop) ทำให้เกิดการ modify ซ้ำซ้อน</p>
+            </div>
+            <div class="bug-section">
+                <h3>วิเคราะห์ Root Cause</h3>
+                <div class="flow-box">
+                    <div class="flow-step">
+                        <div class="flow-num">1</div>
+                        <div class="flow-text"><strong>Call #1 (line 767):</strong> <code>TrailingAlls(...)</code> เรียกทุก tick <strong>ก่อน</strong> new-bar check ที่ line 788</div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">2</div>
+                        <div class="flow-text"><strong>Call #2 (line 830-839):</strong> อยู่ใน position loop ซึ่งยังอยู่ก่อน new-bar check เรียก <code>TrailingAlls(...)</code> อีกรอบ</div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">3</div>
+                        <div class="flow-text">ทั้ง 2 calls เกิดขึ้นใน tick เดียวกัน = ทำงานซ้ำ 2 เท่า</div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">4</div>
+                        <div class="flow-text">TrailingAlls() มี loop ภายใน positions อีก = O(n^2) operations ต่อ tick</div>
+                    </div>
+                </div>
+            </div>
+            <div class="bug-section">
+                <h3>โค้ดที่แก้ (บรรทัด ~828-840)</h3>
+                <div class="code-block">
+<span class="comment">// ลบ TrailingAlls ออกจาก position loop</span>
+<span class="line-old">if (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)</span>
+<span class="line-old">{</span>
+<span class="line-old">   gi_344 = true;</span>
+<span class="line-old">   gi_348 = false;</span>
+<span class="line-old">   l_ord_lots_0 = PositionGetDouble(POSITION_VOLUME);</span>
+<span class="line-old">   if (gi_176)</span>
+<span class="line-old">      TrailingAlls((int)gd_136, (int)gd_144, g_price_244);  // ลบออก</span>
+<span class="line-old">   break;</span>
+<span class="line-old">}</span>
+<span class="line-new">if (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)</span>
+<span class="line-new">{</span>
+<span class="line-new">   gi_344 = true;</span>
+<span class="line-new">   gi_348 = false;</span>
+<span class="line-new">   l_ord_lots_0 = PositionGetDouble(POSITION_VOLUME);</span>
+<span class="line-new">   break;</span>
+<span class="line-new">}</span>
+                </div>
+            </div>
+            <div class="bug-section">
+                <h3>ผลกระทบ</h3>
+                <p>Trailing Stop ถูกคำนวณ 2 เท่าต่อ tick ทำให้ CPU ทำงานหนักไม่จำเป็น และเกิด PositionModify ซ้ำซ้อน</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bug #4 -->
+    <div class="bug-card">
+        <div class="bug-header warning">
+            <div class="bug-title">Bug #4: CountTrades นับ RECOVERY ด้วย ทำให้เปิด order ใหม่ไม่ได้</div>
+            <span class="bug-severity severity-high">HIGH</span>
+        </div>
+        <div class="bug-body">
+            <div class="bug-section">
+                <h3>สถานะ</h3>
+                <span class="status-badge status-fixed">FIXED</span>
+            </div>
+            <div class="bug-section">
+                <h3>สิ่งที่เกิดขึ้น</h3>
+                <p><code>CountTrades()</code> นับ RECOVERY orders (จาก Opposite Martingale) รวมเข้าไปด้วย ทำให้ <code>gi_328</code> สูงเกินจริง เมื่อ <code>gi_328 &gt; MaxTrades</code> EA จะไม่เปิด order ใหม่เลย</p>
+            </div>
+            <div class="bug-section">
+                <h3>วิเคราะห์ Root Cause</h3>
+                <div class="flow-box">
+                    <div class="flow-step">
+                        <div class="flow-num">1</div>
+                        <div class="flow-text">สมมติ MaxTrades = 15, มี BUY 8 orders + RECOVERY SELL 4 orders = จริงๆ 8 orders</div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">2</div>
+                        <div class="flow-text"><code>CountTrades()</code> return 8+4 = <strong>12</strong> (นับ RECOVERY ด้วย)</div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">3</div>
+                        <div class="flow-text">เช็ค <code>gi_328 &gt; 0 &amp;&amp; gi_328 &lt;= MaxTrades</code> (12 &lt;= 15) = true</div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">4</div>
+                        <div class="flow-text">แต่ถ้านับถูก = 8 (ไม่ RECOVERY) แล้ว 8 &lt;= 15 ก็ยัง true</div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">5</div>
+                        <div class="flow-text"><strong>ปัญหาจริง:</strong> เมื่อ RECOVERY เยอะ เช่น BUY 10 + RECOVERY 8 = 18 &gt; MaxTrades(15) = <strong>ไม่เปิด order ใหม่</strong></div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">6</div>
+                        <div class="flow-text">ทั้งที่จริงๆ มีแค่ 10 regular orders ซึ่งยังไม่เกิน MaxTrades</div>
+                    </div>
+                </div>
+            </div>
+            <div class="bug-section">
+                <h3>โค้ดที่แก้ (บรรทัด ~1270-1290)</h3>
+                <div class="code-block">
+<span class="line-old">int CountTrades() {</span>
+<span class="line-old">   ...</span>
+<span class="line-old">   // ไม่มีการ filter RECOVERY</span>
+<span class="line-old">   if (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL ||</span>
+<span class="line-old">       PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)</span>
+<span class="line-old">      l_count_0++;</span>
+<span class="line-old">}</span>
+
+<span class="line-new">int CountTrades() {</span>
+<span class="line-new">   ...</span>
+<span class="line-new">   string comment = PositionGetString(POSITION_COMMENT);</span>
+<span class="line-new">   if (StringFind(comment, "RECOVERY") &gt;= 0)  // เพิ่ม filter</span>
+<span class="line-new">      continue;</span>
+<span class="line-new">   if (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL ||</span>
+<span class="line-new">       PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)</span>
+<span class="line-new">      l_count_0++;</span>
+<span class="line-new">}</span>
+                </div>
+            </div>
+            <div class="bug-section">
+                <h3>ผลกระทบ</h3>
+                <p>เมื่อมี RECOVERY orders เยอะ EA จะคิดว่าถึง MaxTrades แล้ว ไม่เปิด Martingale order ใหม่ ทำให้ระบบ Martingale หยุดทำงานก่อนเวลาอันควร</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bug #5 -->
+    <div class="bug-card">
+        <div class="bug-header info">
+            <div class="bug-title">Bug #5: Opposite Martingale Lot ไม่พอ cover loss</div>
+            <span class="bug-severity severity-medium">MEDIUM</span>
+        </div>
+        <div class="bug-body">
+            <div class="bug-section">
+                <h3>สถานะ</h3>
+                <span class="status-badge status-fixed">FIXED</span>
+            </div>
+            <div class="bug-section">
+                <h3>สิ่งที่เกิดขึ้น</h3>
+                <p>Lot ของ RECOVERY order คำนวณจาก <code>Lots * 1.2^existingOpposite</code> ซึ่งเริ่มจาก 0.01 lot เสมอ ทำให้ RECOVERY order เล็กเกินไป ไม่สามารถ cover loss ที่เกิดขึ้นจริงได้</p>
+            </div>
+            <div class="bug-section">
+                <h3>วิเคราะห์ Root Cause</h3>
+                <div class="flow-box">
+                    <div class="flow-step">
+                        <div class="flow-num">1</div>
+                        <div class="flow-text"><code>Lots = 0.01</code> (base lot)</div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">2</div>
+                        <div class="flow-text">Layer 0: <code>0.01 * 1.2^0 = 0.01 lot</code></div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">3</div>
+                        <div class="flow-text">Layer 1: <code>0.01 * 1.2^1 = 0.012 lot</code></div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">4</div>
+                        <div class="flow-text">Layer 2: <code>0.01 * 1.2^2 = 0.0144 lot</code></div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">5</div>
+                        <div class="flow-text">ถ้า BUY loss อยู่ที่ -$500 (จาก 10 orders) RECOVERY 0.01 lot ต้องการ price move มหาศาลเพื่อ cover</div>
+                    </div>
+                    <div class="flow-step">
+                        <div class="flow-num">6</div>
+                        <div class="flow-text"><strong>ผลลัพธ์:</strong> RECOVERY lot เล็กเกินไป ไม่สามารถ recovery ได้จริง</div>
+                    </div>
+                </div>
+            </div>
+            <div class="bug-section">
+                <h3>โค้ดที่แก้ (CheckOppositeMartingale)</h3>
+                <div class="code-block">
+<span class="comment">// เพิ่ม 2 functions ใหม่:</span>
+<span class="line-new">double GetDirectionVolume(int direction)   // คำนวณ total lot ของ direction</span>
+<span class="line-new">double GetDirectionLossMoney(int direction) // คำนวณ total loss ($)</span>
+
+<span class="comment">// แก้ไขการคำนวณ oppositeLot:</span>
+<span class="line-old">double oppositeLot = NormalizeDouble(Lots * MathPow(gd_88, existingOpposite), ...);</span>
+<span class="line-new">double oppositeLot = NormalizeDouble(Lots * MathPow(gd_88, existingOpposite), ...);</span>
+<span class="line-new">// เพิ่ม: คำนวณ min lot จาก loss จริง</span>
+<span class="line-new">if (hasBuy &amp;&amp; buyLossMoney &lt; 0) {</span>
+<span class="line-new">   double tickValue = SymbolInfoDouble(_Symbol, SYMBOL_TRADE_TICK_VALUE);</span>
+<span class="line-new">   double minLotForRecovery = |buyLossMoney| / (dynamicSL * tickValue) * 1.2;</span>
+<span class="line-new">   if (minLotForRecovery &gt; oppositeLot) oppositeLot = minLotForRecovery;</span>
+<span class="line-new">}</span>
+                </div>
+            </div>
+            <div class="bug-section">
+                <h3>ผลกระทบ</h3>
+                <p>RECOVERY order เปิดแต่ lot เล็กมาก ไม่สามารถกู้คืน loss ได้จริง ระบบที่ออกแบบมาเพื่อ recovery กลับไม่ทำงานตามวัตถุประสงค์</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flow Diagram: OnTick -->
+    <div class="bug-card">
+        <div class="bug-header info">
+            <div class="bug-title">แผนภาพ OnTick Flow (หลังแก้ไข)</div>
+        </div>
+        <div class="bug-body">
+            <div class="flow-box">
+                <div class="flow-step">
+                    <div class="flow-num green">1</div>
+                    <div class="flow-text"><strong>OnTick()</strong> เริ่มต้น - เช็ค Auth, Timezone, Trading Hours</div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num green">2</div>
+                    <div class="flow-text"><strong>Display_Info()</strong> - แสดงข้อมูลบน chart</div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num green">3</div>
+                    <div class="flow-text"><strong>TrailingAlls()</strong> - เรียก 1 ครั้งต่อ tick (แก้ Bug #3)</div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num green">4</div>
+                    <div class="flow-text"><strong>CheckOppositeMartingale()</strong> - ตรวจ RECOVERY (แก้ Bug #5: lot cover loss)</div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num green">5</div>
+                    <div class="flow-text"><strong>New Bar Check</strong> - <code>if (g_time_304 == currentTime[0]) return;</code></div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num green">6</div>
+                    <div class="flow-text"><strong>CountTrades()</strong> - นับเฉพาะ regular orders (แก้ Bug #4)</div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num green">7</div>
+                    <div class="flow-text"><strong>Position Loop</strong> - etect direction, set flags (ไม่เรียก TrailingAlls ซ้ำ)</div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num green">8</div>
+                    <div class="flow-text"><strong>Open New Order</strong> - Martingale logic (เช็ค MaxTrades ถูกต้อง)</div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num green">9</div>
+                    <div class="flow-text"><strong>Modify Loop</strong> - เปรียบเทียบ SL/TP ก่อน modify (แก้ Bug #1)</div>
+                </div>
+                <div class="flow-step">
+                    <div class="flow-num green">10</div>
+                    <div class="flow-text"><strong>gi_356 = false</strong> - reset flag (แก้ Bug #1)</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Conclusion -->
+    <div class="conclusion">
+        <h2>สรุปการแก้ไข</h2>
+        <ul>
+            <li><strong>Bug #1 (CRITICAL):</strong> เพิ่มการเปรียบเทียบ SL/TP ก่อน Modify + Reset gi_356 flag หลังจบ loop ป้องกัน infinite modify loop</li>
+            <li><strong>Bug #3 (CRITICAL):</strong> ลบ TrailingAlls() ออกจาก position loop เรียกเพียง 1 ครั้งต่อ tick ที่จุดเดียว</li>
+            <li><strong>Bug #4 (HIGH):</strong> เพิ่ม filter <code>"RECOVERY"</code> ใน CountTrades() ไม่นับ RECOVERY orders เพื่อ MaxTrades ทำงานถูกต้อง</li>
+            <li><strong>Bug #5 (MEDIUM):</strong> คำนวณ lot จาก loss จริง (<code>loss$ / (SL_distance * tickValue) * 1.2</code>) แทน fixed martingale progression</li>
+        </ul>
+    </div>
+
+    <div class="footer">
+        Devilmod Robot V5.0.8 - Bug Analysis Report<br>
+        Generated: 03/08/2026
+    </div>
+
+</div>
+</body>
+</html>

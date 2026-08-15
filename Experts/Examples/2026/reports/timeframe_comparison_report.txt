@@ -1,0 +1,253 @@
+====================================================================================================
+MULTI-TIMEFRAME BACKTEST COMPARISON REPORT
+MA Crossover Strategy (MACD + Trend Filter)
+====================================================================================================
+
+Generated: 2026-05-12 00:54:43
+Initial Balance: $100.00
+Risk per Trade: 6% (AGGRESSIVE)
+Risk:Reward Ratio: 1:3 (HIGH REWARD)
+Mode: COMPOUND (Compounding Interest)
+ADX Threshold: 15 (Relaxed)
+Target: 5-10% Daily Return
+
+====================================================================================================
+RANKING BY AVERAGE DAILY RETURN
+====================================================================================================
+
+Rank  Timeframe   Daily Ret%   Total Ret%   Net P/L     Trades    Win Rate    PF      Max DD%   Days    
+----------------------------------------------------------------------------------------------------
+1     H1                2.23%      116.16%  $  116.16  29           44.83%   2.12   39.79%  52      
+2     M15              -0.52%      -33.91%  $  -33.91  136          27.21%   0.90   90.53%  65      
+3     M30              -0.55%      -33.17%  $  -33.17  64           23.44%   0.83   83.35%  60      
+4     M5               -0.98%      -65.47%  $  -65.47  421          24.23%   0.89  202.77%  67      
+5     M1               -1.44%      -97.78%  $  -97.78  2111         24.73%   0.94  954.07%  68      
+6     H4               -2.09%      -10.46%  $  -10.46  1             0.00%   0.00   10.66%  5       
+====================================================================================================
+
+====================================================================================================
+DETAILED RESULTS BY TIMEFRAME
+====================================================================================================
+
+
+============================================================
+TIMEFRAME: H1
+============================================================
+
+Performance:
+  Net Profit: $116.16
+  Total Return: 116.16%
+  Average Daily Return: 2.23%
+  Final Balance: $207.36
+
+Trade Statistics:
+  Total Trades: 29 (13W / 16L)
+  Win Rate: 44.83%
+  Profit Factor: 2.12
+  Trades per Day: 0.56
+
+Win/Loss Analysis:
+  Average Win: $16.93
+  Average Loss: $6.49
+  Largest Win: $33.88
+  Largest Loss: $-12.24
+  Max Consecutive Wins: 6
+  Max Consecutive Losses: 5
+
+Risk Metrics:
+  Max Drawdown: $39.79 (39.79%)
+  Trading Period: 52 days
+  First Trade: 2026-02-17 18:00:00
+  Last Trade: 2026-04-10 16:00:00
+
+  ⚠️ WARNING: High drawdown risk (39.79%)
+
+  [BELOW] Below target: 2.23% daily (target: 5-10%)
+
+
+============================================================
+TIMEFRAME: M15
+============================================================
+
+Performance:
+  Net Profit: $-33.91
+  Total Return: -33.91%
+  Average Daily Return: -0.52%
+  Final Balance: $27.09
+
+Trade Statistics:
+  Total Trades: 136 (37W / 99L)
+  Win Rate: 27.21%
+  Profit Factor: 0.90
+  Trades per Day: 2.09
+
+Win/Loss Analysis:
+  Average Win: $7.88
+  Average Loss: $3.29
+  Largest Win: $13.84
+  Largest Loss: $-7.69
+  Max Consecutive Wins: 6
+  Max Consecutive Losses: 10
+
+Risk Metrics:
+  Max Drawdown: $90.53 (90.53%)
+  Trading Period: 65 days
+  First Trade: 2026-02-04 13:30:00
+  Last Trade: 2026-04-10 10:15:00
+
+  ⚠️ WARNING: High drawdown risk (90.53%)
+
+  [BELOW] Below target: -0.52% daily (target: 5-10%)
+
+
+============================================================
+TIMEFRAME: M30
+============================================================
+
+Performance:
+  Net Profit: $-33.17
+  Total Return: -33.17%
+  Average Daily Return: -0.55%
+  Final Balance: $49.63
+
+Trade Statistics:
+  Total Trades: 64 (15W / 49L)
+  Win Rate: 23.44%
+  Profit Factor: 0.83
+  Trades per Day: 1.07
+
+Win/Loss Analysis:
+  Average Win: $10.43
+  Average Loss: $3.87
+  Largest Win: $14.98
+  Largest Loss: $-8.09
+  Max Consecutive Wins: 4
+  Max Consecutive Losses: 12
+
+Risk Metrics:
+  Max Drawdown: $83.35 (83.35%)
+  Trading Period: 60 days
+  First Trade: 2026-02-10 03:30:00
+  Last Trade: 2026-04-10 16:30:00
+
+  ⚠️ WARNING: High drawdown risk (83.35%)
+
+  [BELOW] Below target: -0.55% daily (target: 5-10%)
+
+
+============================================================
+TIMEFRAME: M5
+============================================================
+
+Performance:
+  Net Profit: $-65.47
+  Total Return: -65.47%
+  Average Daily Return: -0.98%
+  Final Balance: $-73.67
+
+Trade Statistics:
+  Total Trades: 421 (102W / 319L)
+  Win Rate: 24.23%
+  Profit Factor: 0.89
+  Trades per Day: 6.28
+
+Win/Loss Analysis:
+  Average Win: $5.07
+  Average Loss: $1.83
+  Largest Win: $20.72
+  Largest Loss: $-8.69
+  Max Consecutive Wins: 4
+  Max Consecutive Losses: 26
+
+Risk Metrics:
+  Max Drawdown: $202.77 (202.77%)
+  Trading Period: 67 days
+  First Trade: 2026-02-02 20:25:00
+  Last Trade: 2026-04-10 16:00:00
+
+  ⚠️ WARNING: High drawdown risk (202.77%)
+
+  [BELOW] Below target: -0.98% daily (target: 5-10%)
+
+
+============================================================
+TIMEFRAME: M1
+============================================================
+
+Performance:
+  Net Profit: $-97.78
+  Total Return: -97.78%
+  Average Daily Return: -1.44%
+  Final Balance: $-715.58
+
+Trade Statistics:
+  Total Trades: 2111 (522W / 1589L)
+  Win Rate: 24.73%
+  Profit Factor: 0.94
+  Trades per Day: 31.04
+
+Win/Loss Analysis:
+  Average Win: $3.04
+  Average Loss: $1.06
+  Largest Win: $36.95
+  Largest Loss: $-14.07
+  Max Consecutive Wins: 5
+  Max Consecutive Losses: 30
+
+Risk Metrics:
+  Max Drawdown: $954.07 (954.07%)
+  Trading Period: 68 days
+  First Trade: 2026-02-01 22:29:00
+  Last Trade: 2026-04-10 16:58:00
+
+  ⚠️ WARNING: High drawdown risk (954.07%)
+
+  [BELOW] Below target: -1.44% daily (target: 5-10%)
+
+
+============================================================
+TIMEFRAME: H4
+============================================================
+
+Performance:
+  Net Profit: $-10.46
+  Total Return: -10.46%
+  Average Daily Return: -2.09%
+  Final Balance: $89.34
+
+Trade Statistics:
+  Total Trades: 1 (0W / 1L)
+  Win Rate: 0.00%
+  Profit Factor: 0.00
+  Trades per Day: 0.20
+
+Win/Loss Analysis:
+  Average Win: $0.00
+  Average Loss: $10.46
+  Largest Win: $0.00
+  Largest Loss: $-10.46
+  Max Consecutive Wins: 0
+  Max Consecutive Losses: 1
+
+Risk Metrics:
+  Max Drawdown: $10.66 (10.66%)
+  Trading Period: 5 days
+  First Trade: 2026-04-02 04:00:00
+  Last Trade: 2026-04-06 04:00:00
+
+  [BELOW] Below target: -2.09% daily (target: 5-10%)
+
+
+====================================================================================================
+CONCLUSION
+====================================================================================================
+
+Best Timeframe: H1
+  Average Daily Return: 2.23%
+  Win Rate: 44.83%
+  Profit Factor: 2.12
+
+[INFO] The best timeframe (H1) achieved 2.23% daily return.
+Consider: Higher risk %, alternative strategies, or longer compound period.
+
+====================================================================================================

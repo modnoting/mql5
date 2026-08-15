@@ -1,0 +1,1640 @@
+//+------------------------------------------------------------------+
+//|                                      Devilmod-Robot-2026-V5.0.mq5|
+//|                                  Copyright 2025, MetaQuotes Ltd. |
+//|                                             https://www.mql5.com |
+//+------------------------------------------------------------------+
+#property copyright "DevilMod"
+#property version "5.00"
+#property strict
+
+#include <Trade\Trade.mqh>
+#include <Trade\SymbolInfo.mqh>
+#include <Trade\AccountInfo.mqh>
+#include <Trade\PositionInfo.mqh>
+
+// CSV Authentication Parameters
+input string CSV_Password = "123456";
+string GoogleSheetURL = "https://docs.google.com/spreadsheets/d/1RPm23hggq0cyL_2i5D58LvNhu-KRhYP3veurdplQNoU/export?format=csv&gid=0";
+
+// Trading Parameters
+int gi_76 = 1;
+bool gi_80 = false;
+bool gi_84 = true;
+double gd_88 = 1.3;
+double g_slippage_96 = 5.0;
+input double Lots = 0.03;
+double gd_112 = 2.0;
+input double g_pips_120 = 3500.0;
+double g_pips_128 = 0.0;
+input double gd_136 = 2000.0;
+input double gd_144 = 1200.0;
+input double distance = 1500.0;
+double g_pips_152 = 7.0;
+input int MaxTrades = 20;
+bool gi_164 = false;
+double gd_168 = 20.0;
+bool gi_176 = true;
+bool gi_180 = false;
+double gd_184 = 0.0;
+bool gi_192 = false;
+input bool UseManualTrade = false;
+input bool UseHourTrade = true;
+input int StartHour = 15;
+input int EndHour = 23;
+input int g_magic_208 = 0;
+
+// Runaway Close Parameters
+input bool   UseRunawayClose    = true;       // Enable Runaway Close System
+input double TriggerDistance    = 2500.0;     // Trigger Distance (points) - Price movement to trigger
+input bool   CloseOldestOnly    = true;       // Close Oldest Order Only
+
+// Global Variables
+double g_price_212;
+double gd_220;
+double gd_unused_228;
+double gd_unused_236;
+double g_price_244;
+double g_bid_252;
+double g_ask_260;
+double gd_268;
+double gd_276;
+double gd_284;
+bool gi_292;
+string gs_296 = "Devilmod-Robot-2025 V5";
+datetime g_time_304 = 0;
+int gi_308;
+int gi_312 = 0;
+double gd_316;
+int g_pos_324 = 0;
+int gi_328;
+double gd_332 = 0.0;
+bool gi_340 = false;
+bool gi_344 = false;
+bool gi_348 = false;
+int gi_352;
+bool gi_356 = false;
+datetime g_datetime_360 = 0;
+datetime g_datetime_364 = 0;
+double gd_368;
+double gd_376;
+
+// CSV Data Structure
+struct CSVData
+{
+   string username;
+   string passwordHash;
+   datetime expDate;
+};
+
+CSVData csvRecords[];
+int totalRecords = 0;
+bool isCSVAuthenticated = false;
+bool isChecked = false;
+int csvDaysRemaining = 0;
+
+input int X_trend = 270;
+input int Y_trend = 35;
+
+// Indicator Parameters
+int MACD_Fast = 12;
+int MACD_Slow = 26;
+int MACD_Signal = 9;
+int Sto_K = 14;
+int Sto_D = 3;
+int Sto_Slowing = 3;
+
+// MT5 Trade Objects
+CTrade ExtTrade;
+CSymbolInfo ExtSymbolInfo;
+CAccountInfo ExtAccountInfo;
+CPositionInfo ExtPositionInfo;
+
+// Indicator Handles
+int HandleMACD_H4, HandleMACD_H1, HandleMACD_M30, HandleMACD_M15, HandleMACD_M5, HandleMACD_M1;
+int HandleSto_H4, HandleSto_H1, HandleSto_M30, HandleSto_M15, HandleSto_M5, HandleSto_M1;
+int HandleRSI_H4, HandleRSI_H1, HandleRSI_M30, HandleRSI_M15, HandleRSI_M5, HandleRSI_M1;
+int HandleATR_H4, HandleATR_H1, HandleATR_M30, HandleATR_M15, HandleATR_M5, HandleATR_M1;
+
+//+------------------------------------------------------------------+
+//| MD5 Hash                                                         |
+//+------------------------------------------------------------------+
+string MD5Hash(string inputStr)
+{
+   uchar data[];
+   uchar hash[];
+   StringToCharArray(inputStr, data, 0, WHOLE_ARRAY, CP_UTF8);
+   ArrayResize(data, ArraySize(data) - 1);
+   uchar key[];
+   if (CryptEncode(CRYPT_HASH_MD5, data, key, hash))
+   {
+      string result = "";
+      for (int i = 0; i < ArraySize(hash); i++)
+         result += StringFormat("%02x", hash[i]);
+      return result;
+   }
+   return SimpleHash(inputStr);
+}
+
+//+------------------------------------------------------------------+
+//| Simple Hash (Fallback)                                           |
+//+------------------------------------------------------------------+
+string SimpleHash(string inputStr)
+{
+   ulong hashValue = 5381;
+   int len = StringLen(inputStr);
+   for (int i = 0; i < len; i++)
+   {
+      string charStr = StringSubstr(inputStr, i, 1);
+      uchar charArray[];
+      StringToCharArray(charStr, charArray, 0, WHOLE_ARRAY, CP_UTF8);
+      if (ArraySize(charArray) > 0)
+      {
+         ulong c = (ulong)charArray[0];
+         hashValue = ((hashValue << 5) + hashValue) + c;
+      }
+   }
+   return StringFormat("%016I64X", hashValue);
+}
+
+//+------------------------------------------------------------------+
+//| Get MACD                                                         |
+//+------------------------------------------------------------------+
+double GetMACD(int handle, int shift)
+{
+   double buffer[];
+   ArraySetAsSeries(buffer, true);
+   if (CopyBuffer(handle, 0, shift, 1, buffer) > 0)
+      return buffer[0];
+   return 0.0;
+}
+
+//+------------------------------------------------------------------+
+//| Get Stochastic                                                   |
+//+------------------------------------------------------------------+
+double GetStochastic(int handle, int shift)
+{
+   double buffer[];
+   ArraySetAsSeries(buffer, true);
+   if (CopyBuffer(handle, 1, shift, 1, buffer) > 0)
+      return buffer[0];
+   return 0.0;
+}
+
+//+------------------------------------------------------------------+
+//| Get RSI                                                          |
+//+------------------------------------------------------------------+
+double GetRSI(int handle, int shift)
+{
+   double buffer[];
+   ArraySetAsSeries(buffer, true);
+   if (CopyBuffer(handle, 0, shift, 1, buffer) > 0)
+      return buffer[0];
+   return 0.0;
+}
+
+//+------------------------------------------------------------------+
+//| Get ATR                                                          |
+//+------------------------------------------------------------------+
+double GetATR(int handle, int shift)
+{
+   double buffer[];
+   ArraySetAsSeries(buffer, true);
+   if (CopyBuffer(handle, 0, shift, 1, buffer) > 0)
+      return buffer[0];
+   return 0.0;
+}
+
+//+------------------------------------------------------------------+
+//| Get Close                                                        |
+//+------------------------------------------------------------------+
+double GetClose(ENUM_TIMEFRAMES timeframe, int shift)
+{
+   double buffer[];
+   ArraySetAsSeries(buffer, true);
+   if (CopyClose(_Symbol, timeframe, shift, 1, buffer) > 0)
+      return buffer[0];
+   return 0.0;
+}
+
+//+------------------------------------------------------------------+
+//| Analyze Trend                                                    |
+//+------------------------------------------------------------------+
+string AnalyzeTrendAllTimeframes()
+{
+   double h4_1 = GetClose(PERIOD_H4, 1);
+   double h4_0 = GetClose(PERIOD_H4, 0);
+   double h1_1 = GetClose(PERIOD_H1, 1);
+   double h1_0 = GetClose(PERIOD_H1, 0);
+   double m15_1 = GetClose(PERIOD_M15, 1);
+   double m15_0 = GetClose(PERIOD_M15, 0);
+   double m1_1 = GetClose(PERIOD_M1, 1);
+   double m1_0 = GetClose(PERIOD_M1, 0);
+
+   double macdH4 = GetMACD(HandleMACD_H4, 0);
+   double macdH4_prev = GetMACD(HandleMACD_H4, 1);
+   double macdH1 = GetMACD(HandleMACD_H1, 0);
+   double macdH1_prev = GetMACD(HandleMACD_H1, 1);
+   double macdM15 = GetMACD(HandleMACD_M15, 0);
+   double macdM15_prev = GetMACD(HandleMACD_M15, 1);
+   double macdM1 = GetMACD(HandleMACD_M1, 0);
+   double macdM1_prev = GetMACD(HandleMACD_M1, 1);
+
+   double stoH1 = GetStochastic(HandleSto_H1, 0);
+   double stoM15 = GetStochastic(HandleSto_M15, 0);
+   double rsiH1 = GetRSI(HandleRSI_H1, 0);
+
+   bool bullishPrice = (h4_0 > h4_1) && (h1_0 > h1_1) && (m15_0 > m15_1);
+   int bullishMacdCount = 0;
+   if (macdH4 > macdH4_prev) bullishMacdCount++;
+   if (macdH1 > macdH1_prev) bullishMacdCount++;
+   if (macdM15 > macdM15_prev) bullishMacdCount++;
+   if (macdM1 > macdM1_prev) bullishMacdCount++;
+   bool bullishMACD = (bullishMacdCount >= 3);
+   bool bullishSto = (stoH1 < 70 && stoM15 < 70);
+   bool bullishRSI = (rsiH1 > 40 && rsiH1 < 80);
+
+   bool bearishPrice = (h4_0 < h4_1) && (h1_0 < h1_1) && (m15_0 < m15_1);
+   int bearishMacdCount = 0;
+   if (macdH4 < macdH4_prev) bearishMacdCount++;
+   if (macdH1 < macdH1_prev) bearishMacdCount++;
+   if (macdM15 < macdM15_prev) bearishMacdCount++;
+   if (macdM1 < macdM1_prev) bearishMacdCount++;
+   bool bearishMACD = (bearishMacdCount >= 3);
+   bool bearishSto = (stoH1 > 30 && stoM15 > 30);
+   bool bearishRSI = (rsiH1 < 60 && rsiH1 > 20);
+
+   if (bullishPrice && bullishMACD && bullishSto && bullishRSI)
+   {
+      Print("BUY Signal - H4:", h4_0, " H1:", h1_0, " M15:", m15_0, " RSI:", rsiH1, " MACD+:", bullishMacdCount);
+      return "BUY";
+   }
+   else if (bearishPrice && bearishMACD && bearishSto && bearishRSI)
+   {
+      Print("SELL Signal - H4:", h4_0, " H1:", h1_0, " M15:", m15_0, " RSI:", rsiH1, " MACD-:", bearishMacdCount);
+      return "SELL";
+   }
+   return "NONE";
+}
+
+//+------------------------------------------------------------------+
+//| Calculate Dynamic Distance                                        |
+//+------------------------------------------------------------------+
+double CalculateDynamicDistance()
+{
+   double atrH4 = GetATR(HandleATR_H4, 0);
+   double atrH1 = GetATR(HandleATR_H1, 0);
+   double atrM30 = GetATR(HandleATR_M30, 0);
+   double atrM15 = GetATR(HandleATR_M15, 0);
+   double avgATR = (atrH4 * 4 + atrH1 * 3 + atrM30 * 2 + atrM15) / 10.0;
+   double dynamicDistance = (avgATR / _Point) * 2.5;
+   double minDistance = 800.0;
+   double maxDistance = 3000.0;
+   if (dynamicDistance < minDistance) dynamicDistance = minDistance;
+   if (dynamicDistance > maxDistance) dynamicDistance = maxDistance;
+   Print("Dynamic Distance: ", (int)dynamicDistance, " points (ATR H4=", DoubleToString(atrH4, 5), ", H1=", DoubleToString(atrH1, 5), ")");
+   return dynamicDistance;
+}
+
+//+------------------------------------------------------------------+
+//| Calculate Dynamic TP/SL                                          |
+//+------------------------------------------------------------------+
+void CalculateDynamicTPSL(double &takeProfit, double &stopLoss)
+{
+   double atrH4 = GetATR(HandleATR_H4, 0);
+   double atrH1 = GetATR(HandleATR_H1, 0);
+   double atrM30 = GetATR(HandleATR_M30, 0);
+   double avgATR = (atrH4 * 2 + atrH1 + atrM30) / 4.0;
+   double atrPoints = avgATR / _Point;
+   stopLoss = atrPoints * 1.8;
+   takeProfit = atrPoints * 3.5;
+   double minSL = 800.0;
+   double maxSL = 2500.0;
+   double minTP = 2000.0;
+   double maxTP = 5000.0;
+   if (stopLoss < minSL) stopLoss = minSL;
+   if (stopLoss > maxSL) stopLoss = maxSL;
+   if (takeProfit < minTP) takeProfit = minTP;
+   if (takeProfit > maxTP) takeProfit = maxTP;
+   if (takeProfit < stopLoss * 1.5)
+      takeProfit = stopLoss * 1.8;
+   Print("Dynamic TP/SL - TP: ", (int)takeProfit, " SL: ", (int)stopLoss, " points");
+}
+
+//+------------------------------------------------------------------+
+//| Runaway Close - Close oldest order when price runs away          |
+//+------------------------------------------------------------------+
+void CheckRunawayClose()
+{
+   if (!UseRunawayClose) return;
+   if (CountTrades() < MaxTrades) return;
+
+   ExtSymbolInfo.RefreshRates();
+   double currentBid = ExtSymbolInfo.Bid();
+   double currentAsk = ExtSymbolInfo.Ask();
+
+   double avgEntryPrice = CalculateAverageEntryPrice();
+   if (avgEntryPrice <= 0) return;
+
+   // Determine position direction
+   bool hasBuy = false;
+   bool hasSell = false;
+   for (int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong ticket = PositionGetTicket(i);
+      if (PositionSelectByTicket(ticket))
+      {
+         if (PositionGetString(POSITION_SYMBOL) != _Symbol ||
+             PositionGetInteger(POSITION_MAGIC) != g_magic_208)
+            continue;
+         if (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)
+            hasBuy = true;
+         if (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL)
+            hasSell = true;
+      }
+   }
+
+   double priceDiff = 0.0;
+   bool isRunaway = false;
+
+   // For BUY positions: price drops = bad (runaway down)
+   if (hasBuy && !hasSell)
+   {
+      priceDiff = (avgEntryPrice - currentBid) / _Point;
+      if (priceDiff >= TriggerDistance)
+         isRunaway = true;
+      Print("Runaway Check (BUY) - AvgEntry:", avgEntryPrice, " Current:", currentBid,
+            " Diff:", (int)priceDiff, " Trigger:", (int)TriggerDistance);
+   }
+   // For SELL positions: price rises = bad (runaway up)
+   else if (hasSell && !hasBuy)
+   {
+      priceDiff = (currentAsk - avgEntryPrice) / _Point;
+      if (priceDiff >= TriggerDistance)
+         isRunaway = true;
+      Print("Runaway Check (SELL) - AvgEntry:", avgEntryPrice, " Current:", currentAsk,
+            " Diff:", (int)priceDiff, " Trigger:", (int)TriggerDistance);
+   }
+
+   if (isRunaway)
+   {
+      Print("=== RUNAWAY CLOSE TRIGGERED === Price moved ", (int)priceDiff, " points against positions");
+      CloseOldestPosition();
+   }
+}
+
+//+------------------------------------------------------------------+
+//| Calculate Average Entry Price                                     |
+//+------------------------------------------------------------------+
+double CalculateAverageEntryPrice()
+{
+   double totalWeightedPrice = 0;
+   double totalVolume = 0;
+
+   for (int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong ticket = PositionGetTicket(i);
+      if (PositionSelectByTicket(ticket))
+      {
+         if (PositionGetString(POSITION_SYMBOL) != _Symbol ||
+             PositionGetInteger(POSITION_MAGIC) != g_magic_208)
+            continue;
+
+         double price = PositionGetDouble(POSITION_PRICE_OPEN);
+         double volume = PositionGetDouble(POSITION_VOLUME);
+         totalWeightedPrice += price * volume;
+         totalVolume += volume;
+      }
+   }
+
+   if (totalVolume > 0)
+      return NormalizeDouble(totalWeightedPrice / totalVolume, _Digits);
+   return 0;
+}
+
+//+------------------------------------------------------------------+
+//| Close Oldest Position (First Opened)                             |
+//+------------------------------------------------------------------+
+void CloseOldestPosition()
+{
+   ulong oldestTicket = 0;
+   datetime oldestTime = TimeCurrent();
+
+   for (int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong ticket = PositionGetTicket(i);
+      if (PositionSelectByTicket(ticket))
+      {
+         if (PositionGetString(POSITION_SYMBOL) != _Symbol ||
+             PositionGetInteger(POSITION_MAGIC) != g_magic_208)
+            continue;
+
+         datetime posTime = (datetime)PositionGetInteger(POSITION_TIME);
+         if (posTime < oldestTime)
+         {
+            oldestTime = posTime;
+            oldestTicket = ticket;
+         }
+      }
+   }
+
+   if (oldestTicket > 0)
+   {
+      if (PositionSelectByTicket(oldestTicket))
+      {
+         string posType = (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY) ? "BUY" : "SELL";
+         double posVolume = PositionGetDouble(POSITION_VOLUME);
+         double posPrice = PositionGetDouble(POSITION_PRICE_OPEN);
+         double posProfit = PositionGetDouble(POSITION_PROFIT);
+
+         Print("=== RUNAWAY CLOSE === Closing oldest ", posType,
+               " Lot:", posVolume, " OpenPrice:", posPrice,
+               " Profit:", posProfit, " Time:", TimeToString(oldestTime));
+
+         if (ExtTrade.PositionClose(oldestTicket))
+            Print("Runaway Close SUCCESS - Order closed");
+         else
+            Print("Runaway Close FAILED - Error: ", GetLastError());
+      }
+   }
+}
+
+//+------------------------------------------------------------------+
+//| FiboLevel                                                        |
+//+------------------------------------------------------------------+
+string FiboLevel()
+{
+   static double fibLow, fibHigh, fibLowM60, fibHighM60;
+   int bars = 60;
+   string Action = "";
+   double highBuffer[], lowBuffer[];
+   ArraySetAsSeries(highBuffer, true);
+   ArraySetAsSeries(lowBuffer, true);
+   CopyHigh(_Symbol, PERIOD_CURRENT, 0, bars, highBuffer);
+   CopyLow(_Symbol, PERIOD_CURRENT, 0, bars, lowBuffer);
+   fibHigh = highBuffer[ArrayMaximum(highBuffer)];
+   fibLow = lowBuffer[ArrayMinimum(lowBuffer)];
+   CopyHigh(_Symbol, PERIOD_M5, 0, bars, highBuffer);
+   CopyLow(_Symbol, PERIOD_M5, 0, bars, lowBuffer);
+   fibHighM60 = highBuffer[ArrayMaximum(highBuffer)];
+   fibLowM60 = lowBuffer[ArrayMinimum(lowBuffer)];
+   double fib382 = fibHigh - (fibHigh - fibLow) * 0.382;
+   double fib618 = fibHigh - (fibHigh - fibLow) * 0.618;
+   double fib382M60 = fibHighM60 - (fibHighM60 - fibLowM60) * 0.382;
+   double fib618M60 = fibHighM60 - (fibHighM60 - fibLowM60) * 0.618;
+   ExtSymbolInfo.Refresh();
+   double ask = ExtSymbolInfo.Ask();
+   double bid = ExtSymbolInfo.Bid();
+   if (ask <= fib618 && ask <= fib618M60 && PositionsTotal() == 0)
+      Action = "UP";
+   if (bid >= fib382 && bid >= fib382M60 && PositionsTotal() == 0)
+      Action = "DN";
+   return Action;
+}
+
+//+------------------------------------------------------------------+
+//| Expert initialization                                            |
+//+------------------------------------------------------------------+
+int OnInit()
+{
+   ExtSymbolInfo.Name(_Symbol);
+   ExtSymbolInfo.Refresh();
+   gd_284 = ExtSymbolInfo.Spread() * ExtSymbolInfo.Point();
+   ExtTrade.SetExpertMagicNumber(g_magic_208);
+   ExtTrade.SetDeviationInPoints((int)g_slippage_96);
+   ExtTrade.SetTypeFilling(ORDER_FILLING_FOK);
+   ExtTrade.SetAsyncMode(false);
+
+    string accountUsername = IntegerToString(AccountInfoInteger(ACCOUNT_LOGIN));
+
+    if (MQLInfoInteger(MQL_TESTER))
+    {
+       isCSVAuthenticated = true;
+       isChecked = true;
+       Print("TESTER MODE: CSV authentication bypassed");
+    }
+    else if (isCSVAuthenticated && isChecked)
+       return (INIT_SUCCEEDED);
+
+    if (!MQLInfoInteger(MQL_TESTER) && StringLen(CSV_Password) > 0)
+   {
+      Print("=== Starting CSV Authentication ===");
+      Print("Account Number: ", accountUsername);
+      if (DownloadCSVFile())
+      {
+         if (ValidateCSVUser(accountUsername, CSV_Password))
+         {
+            Alert("Login Successful! Account: ", accountUsername);
+            Print("AUTHENTICATED: Days remaining = ", csvDaysRemaining);
+            isChecked = true;
+         }
+         else
+         {
+            Alert("Login Failed! Check your credentials.");
+            Print("ERROR: Authentication failed");
+            isChecked = false;
+            return (INIT_FAILED);
+         }
+      }
+      else
+      {
+         Alert("Failed to download CSV data. Check internet connection and URL settings.");
+         Print("ERROR: Failed to download CSV file");
+         isChecked = false;
+         return (INIT_FAILED);
+      }
+   }
+   else
+   {
+      Print("CSV Authentication disabled (Password not provided)");
+      isChecked = false;
+      isCSVAuthenticated = true;
+   }
+
+   // Initialize Indicator Handles
+   HandleMACD_H4 = iMACD(_Symbol, PERIOD_H4, MACD_Fast, MACD_Slow, MACD_Signal, PRICE_CLOSE);
+   HandleMACD_H1 = iMACD(_Symbol, PERIOD_H1, MACD_Fast, MACD_Slow, MACD_Signal, PRICE_CLOSE);
+   HandleMACD_M30 = iMACD(_Symbol, PERIOD_M30, MACD_Fast, MACD_Slow, MACD_Signal, PRICE_CLOSE);
+   HandleMACD_M15 = iMACD(_Symbol, PERIOD_M15, MACD_Fast, MACD_Slow, MACD_Signal, PRICE_CLOSE);
+   HandleMACD_M5 = iMACD(_Symbol, PERIOD_M5, MACD_Fast, MACD_Slow, MACD_Signal, PRICE_CLOSE);
+   HandleMACD_M1 = iMACD(_Symbol, PERIOD_M1, MACD_Fast, MACD_Slow, MACD_Signal, PRICE_CLOSE);
+
+   HandleSto_H4 = iStochastic(_Symbol, PERIOD_H4, Sto_K, Sto_D, Sto_Slowing, MODE_SMA, STO_LOWHIGH);
+   HandleSto_H1 = iStochastic(_Symbol, PERIOD_H1, Sto_K, Sto_D, Sto_Slowing, MODE_SMA, STO_LOWHIGH);
+   HandleSto_M30 = iStochastic(_Symbol, PERIOD_M30, Sto_K, Sto_D, Sto_Slowing, MODE_SMA, STO_LOWHIGH);
+   HandleSto_M15 = iStochastic(_Symbol, PERIOD_M15, Sto_K, Sto_D, Sto_Slowing, MODE_SMA, STO_LOWHIGH);
+   HandleSto_M5 = iStochastic(_Symbol, PERIOD_M5, Sto_K, Sto_D, Sto_Slowing, MODE_SMA, STO_LOWHIGH);
+   HandleSto_M1 = iStochastic(_Symbol, PERIOD_M1, Sto_K, Sto_D, Sto_Slowing, MODE_SMA, STO_LOWHIGH);
+
+   HandleRSI_H4 = iRSI(_Symbol, PERIOD_H4, 14, PRICE_CLOSE);
+   HandleRSI_H1 = iRSI(_Symbol, PERIOD_H1, 14, PRICE_CLOSE);
+   HandleRSI_M30 = iRSI(_Symbol, PERIOD_M30, 14, PRICE_CLOSE);
+   HandleRSI_M15 = iRSI(_Symbol, PERIOD_M15, 14, PRICE_CLOSE);
+   HandleRSI_M5 = iRSI(_Symbol, PERIOD_M5, 14, PRICE_CLOSE);
+   HandleRSI_M1 = iRSI(_Symbol, PERIOD_M1, 14, PRICE_CLOSE);
+
+   HandleATR_H4 = iATR(_Symbol, PERIOD_H4, 14);
+   HandleATR_H1 = iATR(_Symbol, PERIOD_H1, 14);
+   HandleATR_M30 = iATR(_Symbol, PERIOD_M30, 14);
+   HandleATR_M15 = iATR(_Symbol, PERIOD_M15, 14);
+   HandleATR_M5 = iATR(_Symbol, PERIOD_M5, 14);
+   HandleATR_M1 = iATR(_Symbol, PERIOD_M1, 14);
+
+   if (HandleMACD_H4 == INVALID_HANDLE || HandleMACD_H1 == INVALID_HANDLE || HandleMACD_M30 == INVALID_HANDLE ||
+       HandleMACD_M15 == INVALID_HANDLE || HandleMACD_M5 == INVALID_HANDLE || HandleMACD_M1 == INVALID_HANDLE)
+   {
+      Print("ERROR: Failed to create MACD indicator handles");
+      return (INIT_FAILED);
+   }
+   if (HandleSto_H4 == INVALID_HANDLE || HandleSto_H1 == INVALID_HANDLE || HandleSto_M30 == INVALID_HANDLE ||
+       HandleSto_M15 == INVALID_HANDLE || HandleSto_M5 == INVALID_HANDLE || HandleSto_M1 == INVALID_HANDLE)
+   {
+      Print("ERROR: Failed to create Stochastic indicator handles");
+      return (INIT_FAILED);
+   }
+   if (HandleRSI_H4 == INVALID_HANDLE || HandleRSI_H1 == INVALID_HANDLE || HandleRSI_M30 == INVALID_HANDLE ||
+       HandleRSI_M15 == INVALID_HANDLE || HandleRSI_M5 == INVALID_HANDLE || HandleRSI_M1 == INVALID_HANDLE)
+   {
+      Print("ERROR: Failed to create RSI indicator handles");
+      return (INIT_FAILED);
+   }
+   if (HandleATR_H4 == INVALID_HANDLE || HandleATR_H1 == INVALID_HANDLE || HandleATR_M30 == INVALID_HANDLE ||
+       HandleATR_M15 == INVALID_HANDLE || HandleATR_M5 == INVALID_HANDLE || HandleATR_M1 == INVALID_HANDLE)
+   {
+      Print("ERROR: Failed to create ATR indicator handles");
+      return (INIT_FAILED);
+   }
+
+   Display_Info();
+   return (INIT_SUCCEEDED);
+}
+
+//+------------------------------------------------------------------+
+//| Expert deinitialization                                          |
+//+------------------------------------------------------------------+
+void OnDeinit(const int reason)
+{
+   if (HandleMACD_H4 != INVALID_HANDLE) IndicatorRelease(HandleMACD_H4);
+   if (HandleMACD_H1 != INVALID_HANDLE) IndicatorRelease(HandleMACD_H1);
+   if (HandleMACD_M30 != INVALID_HANDLE) IndicatorRelease(HandleMACD_M30);
+   if (HandleMACD_M15 != INVALID_HANDLE) IndicatorRelease(HandleMACD_M15);
+   if (HandleMACD_M5 != INVALID_HANDLE) IndicatorRelease(HandleMACD_M5);
+   if (HandleMACD_M1 != INVALID_HANDLE) IndicatorRelease(HandleMACD_M1);
+   if (HandleSto_H4 != INVALID_HANDLE) IndicatorRelease(HandleSto_H4);
+   if (HandleSto_H1 != INVALID_HANDLE) IndicatorRelease(HandleSto_H1);
+   if (HandleSto_M30 != INVALID_HANDLE) IndicatorRelease(HandleSto_M30);
+   if (HandleSto_M15 != INVALID_HANDLE) IndicatorRelease(HandleSto_M15);
+   if (HandleSto_M5 != INVALID_HANDLE) IndicatorRelease(HandleSto_M5);
+   if (HandleSto_M1 != INVALID_HANDLE) IndicatorRelease(HandleSto_M1);
+   if (HandleRSI_H4 != INVALID_HANDLE) IndicatorRelease(HandleRSI_H4);
+   if (HandleRSI_H1 != INVALID_HANDLE) IndicatorRelease(HandleRSI_H1);
+   if (HandleRSI_M30 != INVALID_HANDLE) IndicatorRelease(HandleRSI_M30);
+   if (HandleRSI_M15 != INVALID_HANDLE) IndicatorRelease(HandleRSI_M15);
+   if (HandleRSI_M5 != INVALID_HANDLE) IndicatorRelease(HandleRSI_M5);
+   if (HandleRSI_M1 != INVALID_HANDLE) IndicatorRelease(HandleRSI_M1);
+   if (HandleATR_H4 != INVALID_HANDLE) IndicatorRelease(HandleATR_H4);
+   if (HandleATR_H1 != INVALID_HANDLE) IndicatorRelease(HandleATR_H1);
+   if (HandleATR_M30 != INVALID_HANDLE) IndicatorRelease(HandleATR_M30);
+   if (HandleATR_M15 != INVALID_HANDLE) IndicatorRelease(HandleATR_M15);
+   if (HandleATR_M5 != INVALID_HANDLE) IndicatorRelease(HandleATR_M5);
+   if (HandleATR_M1 != INVALID_HANDLE) IndicatorRelease(HandleATR_M1);
+}
+
+//+------------------------------------------------------------------+
+//| Expert tick function                                             |
+//+------------------------------------------------------------------+
+void OnTick()
+{
+   if (StringLen(CSV_Password) > 0 && !isCSVAuthenticated)
+   {
+      Comment("CSV Authentication Failed! EA is disabled.");
+      return;
+   }
+
+   Display_Info();
+
+   double dynamicDistance = CalculateDynamicDistance();
+   double dynamicTP = 0, dynamicSL = 0;
+   CalculateDynamicTPSL(dynamicTP, dynamicSL);
+
+   string trendSignal = AnalyzeTrendAllTimeframes();
+
+   static datetime lastLogTime = 0;
+   if (TimeCurrent() != lastLogTime)
+   {
+      Print("=== Trend Analysis === Signal: ", trendSignal,
+            " | Dynamic TP:", (int)dynamicTP, " SL:", (int)dynamicSL,
+            " Distance:", (int)dynamicDistance);
+      lastLogTime = TimeCurrent();
+   }
+
+   bool is_buy = false, is_sell = false;
+   double l_ord_lots_0 = 0.0;
+   double l_ord_lots_8 = 0.0;
+
+   if (trendSignal == "BUY")
+   {
+      is_buy = true;
+      Print(">>> BUY Signal Confirmed - Ready to open position");
+   }
+   else if (trendSignal == "SELL")
+   {
+      is_sell = true;
+      Print(">>> SELL Signal Confirmed - Ready to open position");
+   }
+
+   // Check Runaway Close before opening new orders
+   CheckRunawayClose();
+
+   datetime localTime = TimeLocal();
+   MqlDateTime dt;
+   TimeToStruct(localTime, dt);
+   int dayOfWeek = dt.day_of_week;
+   int hourOfDay = dt.hour;
+
+   if (dayOfWeek == 0 || dayOfWeek == 6)
+   {
+      Comment("Do not work on Holidays!");
+      return;
+   }
+   if (dayOfWeek == 5)
+   {
+      if (!(hourOfDay >= 7 && hourOfDay <= 10))
+      {
+         if (PositionsTotal() < 1)
+         {
+            Comment("Outside trading hours (Friday)");
+            return;
+         }
+      }
+   }
+   if (dayOfWeek == 1)
+   {
+      if (!(hourOfDay >= 15 && hourOfDay <= 23))
+      {
+         if (PositionsTotal() < 1)
+         {
+            Comment("Outside trading hours (Monday)");
+            return;
+         }
+      }
+   }
+   if (UseHourTrade)
+   {
+      if (!(hourOfDay >= StartHour && hourOfDay <= EndHour))
+      {
+         if (PositionsTotal() < 1)
+         {
+            Comment("Outside trading hours");
+            return;
+         }
+      }
+   }
+
+   string ls_32 = "false";
+   string ls_40 = "false";
+   if (gi_192 == false || (gi_192 && ((EndHour > StartHour && (hourOfDay >= StartHour && hourOfDay <= EndHour)) ||
+                                      (StartHour > EndHour && !(hourOfDay >= EndHour && hourOfDay <= StartHour)))))
+      ls_32 = "true";
+   if (gi_192 && ((EndHour > StartHour && !(hourOfDay >= StartHour && hourOfDay <= EndHour)) ||
+                  (StartHour > EndHour && (hourOfDay >= EndHour && hourOfDay <= StartHour))))
+      ls_40 = "true";
+
+   if (gi_176)
+      TrailingAlls((int)gd_136, (int)gd_144, g_price_244);
+
+   if (gi_180)
+   {
+      if (TimeCurrent() >= gi_308)
+      {
+         if (PositionsTotal() < 1)
+         {
+            CloseThisSymbolAll();
+            Print("Closed All due to TimeOut");
+         }
+      }
+   }
+
+   datetime currentTime[];
+   ArraySetAsSeries(currentTime, true);
+   CopyTime(_Symbol, PERIOD_CURRENT, 0, 1, currentTime);
+   if (g_time_304 == currentTime[0])
+      return;
+   g_time_304 = currentTime[0];
+
+   double ld_48 = CalculateProfit();
+   if (gi_164)
+   {
+      if (ld_48 < 0.0 && MathAbs(ld_48) > gd_168 / 100.0 * AccountEquityHigh())
+      {
+         CloseThisSymbolAll();
+         Print("Closed All due to Stop Out");
+         gi_356 = false;
+      }
+   }
+
+   gi_328 = CountTrades();
+   if (gi_328 == 0)
+      gi_292 = false;
+
+   for (int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong ticket = PositionGetTicket(i);
+      if (PositionSelectByTicket(ticket))
+      {
+         if (PositionGetString(POSITION_SYMBOL) != _Symbol ||
+             PositionGetInteger(POSITION_MAGIC) != g_magic_208)
+            continue;
+         if (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)
+         {
+            gi_344 = true;
+            gi_348 = false;
+            l_ord_lots_0 = PositionGetDouble(POSITION_VOLUME);
+            if (gi_176) TrailingAlls((int)gd_136, (int)gd_144, g_price_244);
+            break;
+         }
+         if (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL)
+         {
+            gi_344 = false;
+            gi_348 = true;
+            l_ord_lots_8 = PositionGetDouble(POSITION_VOLUME);
+            if (gi_176) TrailingAlls((int)gd_136, (int)gd_144, g_price_244);
+            break;
+         }
+      }
+   }
+
+   if (gi_328 > 0 && gi_328 <= MaxTrades)
+   {
+      ExtSymbolInfo.RefreshRates();
+      gd_268 = FindLastBuyPrice();
+      gd_276 = FindLastSellPrice();
+      if (gi_344 && gd_268 - ExtSymbolInfo.Ask() >= dynamicDistance * ExtSymbolInfo.Point())
+         gi_340 = true;
+      if (gi_348 && ExtSymbolInfo.Bid() - gd_276 >= dynamicDistance * ExtSymbolInfo.Point())
+         gi_340 = true;
+   }
+
+   if (gi_328 < 1)
+   {
+      gi_348 = false;
+      gi_344 = false;
+      gi_340 = true;
+      gd_220 = AccountInfoDouble(ACCOUNT_EQUITY);
+   }
+
+   if (gi_340)
+   {
+      gd_268 = FindLastBuyPrice();
+      gd_276 = FindLastSellPrice();
+
+      if (gi_348)
+      {
+         if (gi_80 || ls_40 == "true")
+         {
+            fOrderCloseMarket(false, true);
+            gd_316 = NormalizeDouble(gd_88 * l_ord_lots_8, (int)gd_112);
+         }
+         else
+            gd_316 = fGetLots(ORDER_TYPE_SELL);
+
+         if (gi_84 && ls_32 == "true")
+         {
+            gi_312 = gi_328;
+            ExtSymbolInfo.RefreshRates();
+            double LastSellPrice = FindLastSellPrice();
+            double currentPriceSell = ExtSymbolInfo.Ask();
+            if (gd_316 > 0.0)
+            {
+               if (LastSellPrice > 0)
+               {
+                  double pointDiffSell = MathAbs(currentPriceSell - LastSellPrice) / ExtSymbolInfo.Point();
+                  Print("SELL Check - LastPrice: ", LastSellPrice, " CurrentPrice: ", currentPriceSell,
+                        " PointDiff: ", (int)pointDiffSell, " Required Distance: ", (int)dynamicDistance);
+                  if (pointDiffSell < dynamicDistance)
+                  {
+                     Comment("Waiting for SELL distance... PointDiff=", (int)pointDiffSell, " < Required=", (int)dynamicDistance);
+                     return;
+                  }
+               }
+               ExtSymbolInfo.RefreshRates();
+               Print("Opening SELL order - Lot: ", gd_316, " Price: ", ExtSymbolInfo.Bid(),
+                     " TP: ", (int)dynamicTP, " SL: ", (int)dynamicSL);
+               if (ExtTrade.Sell(gd_316, _Symbol, ExtSymbolInfo.Bid(),
+                                 StopShort(ExtSymbolInfo.Ask(), (int)dynamicSL),
+                                 TakeShort(ExtSymbolInfo.Bid(), (int)dynamicTP),
+                                 gs_296 + "-" + IntegerToString(gi_312)))
+               {
+                  Print("SELL order opened successfully!");
+                  gd_276 = FindLastSellPrice();
+                  gi_340 = false;
+                  gi_356 = true;
+               }
+               else
+               {
+                  Print("Error opening SELL: ", GetLastError());
+                  return;
+               }
+            }
+         }
+      }
+      else
+      {
+         if (gi_344)
+         {
+            if (gi_80 || ls_40 == "true")
+            {
+               fOrderCloseMarket(true, false);
+               gd_316 = NormalizeDouble(gd_88 * l_ord_lots_0, (int)gd_112);
+            }
+            else
+               gd_316 = fGetLots(ORDER_TYPE_BUY);
+
+            if (gi_84 && ls_32 == "true")
+            {
+               gi_312 = gi_328;
+               ExtSymbolInfo.RefreshRates();
+               double LastBuyPrice = FindLastBuyPrice();
+               double currentPriceBuy = ExtSymbolInfo.Bid();
+               if (gd_316 > 0.0)
+               {
+                  if (LastBuyPrice > 0)
+                  {
+                     double pointDiffBuy = MathAbs(currentPriceBuy - LastBuyPrice) / ExtSymbolInfo.Point();
+                     Print("BUY Check - LastPrice: ", LastBuyPrice, " CurrentPrice: ", currentPriceBuy,
+                           " PointDiff: ", (int)pointDiffBuy, " Required Distance: ", (int)dynamicDistance);
+                     if (pointDiffBuy < dynamicDistance)
+                     {
+                        Comment("Waiting for BUY distance... PointDiff=", (int)pointDiffBuy, " < Required=", (int)dynamicDistance);
+                        return;
+                     }
+                  }
+                  ExtSymbolInfo.RefreshRates();
+                  Print("Opening BUY order - Lot: ", gd_316, " Price: ", ExtSymbolInfo.Ask(),
+                        " TP: ", (int)dynamicTP, " SL: ", (int)dynamicSL);
+                  if (ExtTrade.Buy(gd_316, _Symbol, ExtSymbolInfo.Ask(),
+                                   StopLong(ExtSymbolInfo.Bid(), (int)dynamicSL),
+                                   TakeLong(ExtSymbolInfo.Ask(), (int)dynamicTP),
+                                   gs_296 + "-" + IntegerToString(gi_312)))
+                  {
+                     Print("BUY order opened successfully!");
+                     gd_268 = FindLastBuyPrice();
+                     gi_340 = false;
+                     gi_356 = true;
+                  }
+                  else
+                  {
+                     Print("Error opening BUY: ", GetLastError());
+                     return;
+                  }
+               }
+            }
+         }
+      }
+   }
+
+   if (gi_340 && gi_328 < 1)
+   {
+      Print(">>> Ready to open first order - gi_340:", gi_340, " gi_328:", gi_328,
+            " is_buy:", is_buy, " is_sell:", is_sell);
+      ExtSymbolInfo.RefreshRates();
+      g_bid_252 = ExtSymbolInfo.Bid();
+      g_ask_260 = ExtSymbolInfo.Ask();
+
+      if (!gi_348 && !gi_344 && ls_32 == "true")
+      {
+         gi_312 = gi_328;
+         if (UseManualTrade)
+            Print("Manual trade mode active - waiting for manual signals");
+
+         if (PositionsTotal() <= 0 && is_sell)
+         {
+            Print(">>> Attempting to open SELL order...");
+            gd_316 = fGetLots(ORDER_TYPE_SELL);
+            Print("Calculated lot size: ", gd_316);
+            if (gd_316 > 0)
+            {
+               if (ExtTrade.Sell(gd_316, _Symbol, g_bid_252,
+                                 StopShort(g_ask_260, (int)dynamicSL),
+                                 TakeShort(g_bid_252, (int)dynamicTP),
+                                 gs_296 + "-" + IntegerToString(gi_312)))
+               {
+                  Print("First SELL order opened - Lot: ", gd_316, " TP: ", (int)dynamicTP, " SL: ", (int)dynamicSL);
+                  gd_276 = FindLastSellPrice();
+                  gi_348 = true;
+                  gi_356 = true;
+               }
+               else
+               {
+                  Print(gd_316, " Error opening SELL: ", GetLastError());
+                  return;
+               }
+            }
+            else
+               Print("ERROR: Lot size is 0 or negative!");
+         }
+         else if (PositionsTotal() <= 0 && is_buy)
+         {
+            Print(">>> Attempting to open BUY order...");
+            gd_316 = fGetLots(ORDER_TYPE_BUY);
+            Print("Calculated lot size: ", gd_316);
+            if (gd_316 > 0)
+            {
+               if (ExtTrade.Buy(gd_316, _Symbol, g_ask_260,
+                                StopLong(g_bid_252, (int)dynamicSL),
+                                TakeLong(g_ask_260, (int)dynamicTP),
+                                gs_296 + "-" + IntegerToString(gi_312)))
+               {
+                  Print("First BUY order opened - Lot: ", gd_316, " TP: ", (int)dynamicTP, " SL: ", (int)dynamicSL);
+                  gd_268 = FindLastBuyPrice();
+                  gi_344 = true;
+                  gi_356 = true;
+               }
+               else
+               {
+                  Print(gd_316, " Error opening BUY: ", GetLastError());
+                  return;
+               }
+            }
+            else
+               Print("ERROR: Lot size is 0 or negative!");
+         }
+         else
+            Print("Conditions not met - PositionsTotal:", PositionsTotal(), " is_buy:", is_buy, " is_sell:", is_sell);
+      }
+      else
+         Print("gi_348:", gi_348, " gi_344:", gi_344, " ls_32:", ls_32);
+
+      if (gi_352 > 0)
+         gi_308 = (int)(TimeCurrent() + 60 * 60 * gd_184);
+      gi_340 = false;
+   }
+   else
+   {
+      static datetime lastDebugTime = 0;
+      if (TimeCurrent() - lastDebugTime > 300)
+      {
+         Print("Waiting for conditions - gi_340:", gi_340, " gi_328:", gi_328, " Signal:", trendSignal);
+         lastDebugTime = TimeCurrent();
+      }
+   }
+
+   gi_328 = CountTrades();
+   g_price_244 = 0;
+   double ld_56 = 0;
+
+   for (int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong ticket = PositionGetTicket(i);
+      if (PositionSelectByTicket(ticket))
+      {
+         if (PositionGetString(POSITION_SYMBOL) != _Symbol ||
+             PositionGetInteger(POSITION_MAGIC) != g_magic_208)
+            continue;
+         if (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY ||
+             PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL)
+         {
+            g_price_244 += PositionGetDouble(POSITION_PRICE_OPEN) * PositionGetDouble(POSITION_VOLUME);
+            ld_56 += PositionGetDouble(POSITION_VOLUME);
+         }
+      }
+   }
+
+   if (gi_328 > 0)
+      g_price_244 = NormalizeDouble(g_price_244 / ld_56, _Digits);
+
+   if (gi_356)
+   {
+      for (int i = PositionsTotal() - 1; i >= 0; i--)
+      {
+         ulong ticket = PositionGetTicket(i);
+         if (PositionSelectByTicket(ticket))
+         {
+            if (PositionGetString(POSITION_SYMBOL) != _Symbol ||
+                PositionGetInteger(POSITION_MAGIC) != g_magic_208)
+               continue;
+            if (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)
+            {
+               double sl = StopLong(g_price_244, (int)g_pips_128);
+               double tp = TakeLong(g_price_244, (int)g_pips_120);
+               ExtTrade.PositionModify(ticket, sl, tp);
+            }
+            if (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL)
+            {
+               double sl = StopShort(g_price_244, (int)g_pips_128);
+               double tp = TakeShort(g_price_244, (int)g_pips_120);
+               ExtTrade.PositionModify(ticket, sl, tp);
+            }
+         }
+      }
+   }
+
+   if (gi_356)
+   {
+      if (gi_292 == true)
+      {
+         for (int i = PositionsTotal() - 1; i >= 0; i--)
+         {
+            ulong ticket = PositionGetTicket(i);
+            if (PositionSelectByTicket(ticket))
+            {
+               if (PositionGetString(POSITION_SYMBOL) == _Symbol &&
+                   PositionGetInteger(POSITION_MAGIC) == g_magic_208)
+                  ExtTrade.PositionClose(ticket);
+            }
+         }
+      }
+   }
+}
+
+//+------------------------------------------------------------------+
+//| Normalize Double                                                 |
+//+------------------------------------------------------------------+
+double ND(double ad_0)
+{
+   return (NormalizeDouble(ad_0, _Digits));
+}
+
+//+------------------------------------------------------------------+
+//| Order Close Market                                               |
+//+------------------------------------------------------------------+
+int fOrderCloseMarket(bool ai_0 = true, bool ai_4 = true)
+{
+   int li_ret_8 = 0;
+   for (int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong ticket = PositionGetTicket(i);
+      if (PositionSelectByTicket(ticket))
+      {
+         if (PositionGetString(POSITION_SYMBOL) == _Symbol &&
+             PositionGetInteger(POSITION_MAGIC) == g_magic_208)
+         {
+            if (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY && ai_0)
+            {
+               if (ExtTrade.PositionClose(ticket))
+                  li_ret_8++;
+            }
+            if (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL && ai_4)
+            {
+               if (ExtTrade.PositionClose(ticket))
+                  li_ret_8++;
+            }
+         }
+      }
+   }
+   return (li_ret_8);
+}
+
+//+------------------------------------------------------------------+
+//| Get Lots                                                         |
+//+------------------------------------------------------------------+
+double fGetLots(int a_cmd_0)
+{
+   double l_lots_4 = Lots;
+   datetime l_datetime_12;
+   switch (gi_76)
+   {
+   case 0:
+      l_lots_4 = Lots;
+      break;
+   case 1:
+      l_lots_4 = NormalizeDouble(Lots * MathPow(gd_88, gi_312), (int)gd_112);
+      break;
+   case 2:
+      l_datetime_12 = 0;
+      l_lots_4 = Lots;
+      HistorySelect(0, TimeCurrent());
+      for (int i = HistoryDealsTotal() - 1; i >= 0; i--)
+      {
+         ulong ticket = HistoryDealGetTicket(i);
+         if (ticket > 0)
+         {
+            if (HistoryDealGetString(ticket, DEAL_SYMBOL) == _Symbol &&
+                HistoryDealGetInteger(ticket, DEAL_MAGIC) == g_magic_208)
+            {
+               if ((int)HistoryDealGetInteger(ticket, DEAL_TIME) > l_datetime_12)
+               {
+                  l_datetime_12 = (int)HistoryDealGetInteger(ticket, DEAL_TIME);
+                  if (HistoryDealGetDouble(ticket, DEAL_PROFIT) < 0)
+                     l_lots_4 = NormalizeDouble(HistoryDealGetDouble(ticket, DEAL_VOLUME) * gd_88, (int)gd_112);
+                  else
+                     l_lots_4 = Lots;
+               }
+            }
+         }
+      }
+      break;
+   }
+   ExtSymbolInfo.Refresh();
+   double minlot = ExtSymbolInfo.LotsMin();
+   double maxlot = ExtSymbolInfo.LotsMax();
+   if (l_lots_4 < minlot) l_lots_4 = minlot;
+   if (l_lots_4 > maxlot) l_lots_4 = maxlot;
+   double margin_required = 0;
+   if (!OrderCalcMargin((ENUM_ORDER_TYPE)a_cmd_0, _Symbol, l_lots_4, ExtSymbolInfo.Ask(), margin_required))
+      return (-1);
+   if (AccountInfoDouble(ACCOUNT_MARGIN_FREE) < margin_required)
+      return (-1);
+   if (GetLastError() == 134)
+      return (-2);
+   return (l_lots_4);
+}
+
+//+------------------------------------------------------------------+
+//| Count Trades                                                     |
+//+------------------------------------------------------------------+
+int CountTrades()
+{
+   int l_count_0 = 0;
+   for (int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong ticket = PositionGetTicket(i);
+      if (PositionSelectByTicket(ticket))
+      {
+         if (PositionGetString(POSITION_SYMBOL) != _Symbol ||
+             PositionGetInteger(POSITION_MAGIC) != g_magic_208)
+            continue;
+         if (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL ||
+             PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)
+            l_count_0++;
+      }
+   }
+   return (l_count_0);
+}
+
+//+------------------------------------------------------------------+
+//| Close This Symbol All                                            |
+//+------------------------------------------------------------------+
+void CloseThisSymbolAll()
+{
+   for (int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong ticket = PositionGetTicket(i);
+      if (PositionSelectByTicket(ticket))
+      {
+         if (PositionGetString(POSITION_SYMBOL) == _Symbol)
+         {
+            if (PositionGetString(POSITION_SYMBOL) == _Symbol &&
+                PositionGetInteger(POSITION_MAGIC) == g_magic_208)
+               ExtTrade.PositionClose(ticket);
+            Sleep(1000);
+         }
+      }
+   }
+}
+
+//+------------------------------------------------------------------+
+//| Close Symbol All                                                 |
+//+------------------------------------------------------------------+
+void CloseSymbolAll()
+{
+   for (int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong ticket = PositionGetTicket(i);
+      if (PositionSelectByTicket(ticket))
+      {
+         if (PositionGetString(POSITION_SYMBOL) == _Symbol)
+            ExtTrade.PositionClose(ticket);
+      }
+   }
+}
+
+//+------------------------------------------------------------------+
+//| Stop Long                                                        |
+//+------------------------------------------------------------------+
+double StopLong(double ad_0, int ai_8)
+{
+   if (ai_8 == 0) return (0);
+   return (ad_0 - ai_8 * _Point);
+}
+
+//+------------------------------------------------------------------+
+//| Stop Short                                                       |
+//+------------------------------------------------------------------+
+double StopShort(double ad_0, int ai_8)
+{
+   if (ai_8 == 0) return (0);
+   return (ad_0 + ai_8 * _Point);
+}
+
+//+------------------------------------------------------------------+
+//| Take Long                                                        |
+//+------------------------------------------------------------------+
+double TakeLong(double ad_0, int ai_8)
+{
+   if (ai_8 == 0) return (0);
+   return (ad_0 + ai_8 * _Point);
+}
+
+//+------------------------------------------------------------------+
+//| Take Short                                                       |
+//+------------------------------------------------------------------+
+double TakeShort(double ad_0, int ai_8)
+{
+   if (ai_8 == 0) return (0);
+   return (ad_0 - ai_8 * _Point);
+}
+
+//+------------------------------------------------------------------+
+//| Calculate Profit                                                 |
+//+------------------------------------------------------------------+
+double CalculateProfit()
+{
+   double ld_ret_0 = 0;
+   for (int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong ticket = PositionGetTicket(i);
+      if (PositionSelectByTicket(ticket))
+      {
+         if (PositionGetString(POSITION_SYMBOL) != _Symbol ||
+             PositionGetInteger(POSITION_MAGIC) != g_magic_208)
+            continue;
+         if (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY ||
+             PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL)
+            ld_ret_0 += PositionGetDouble(POSITION_PROFIT);
+      }
+   }
+   return (ld_ret_0);
+}
+
+//+------------------------------------------------------------------+
+//| Trailing Alls                                                    |
+//+------------------------------------------------------------------+
+void TrailingAlls(int ai_0, int ai_4, double a_price_8)
+{
+   double l_ord_stoploss_20;
+   if (ai_4 != 0)
+   {
+      for (int i = PositionsTotal() - 1; i >= 0; i--)
+      {
+         ulong ticket = PositionGetTicket(i);
+         if (PositionSelectByTicket(ticket))
+         {
+            if (PositionGetString(POSITION_SYMBOL) == _Symbol &&
+                PositionGetInteger(POSITION_MAGIC) == g_magic_208)
+            {
+               ExtSymbolInfo.RefreshRates();
+               if (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)
+               {
+                  l_ord_stoploss_20 = PositionGetDouble(POSITION_SL);
+                  if (ExtSymbolInfo.Bid() - PositionGetDouble(POSITION_PRICE_OPEN) > _Point * ai_0)
+                  {
+                     if (l_ord_stoploss_20 < ExtSymbolInfo.Bid() - _Point * ai_0)
+                     {
+                        double newSL = ExtSymbolInfo.Bid() - ai_0 * _Point;
+                        double tp = PositionGetDouble(POSITION_TP);
+                        ExtTrade.PositionModify(ticket, newSL, tp);
+                     }
+                  }
+               }
+               if (PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL)
+               {
+                  l_ord_stoploss_20 = PositionGetDouble(POSITION_SL);
+                  if (PositionGetDouble(POSITION_PRICE_OPEN) - ExtSymbolInfo.Ask() > _Point * ai_0)
+                  {
+                     if (l_ord_stoploss_20 > ExtSymbolInfo.Ask() + _Point * ai_0 || l_ord_stoploss_20 == 0)
+                     {
+                        double newSL = ExtSymbolInfo.Ask() + ai_0 * _Point;
+                        double tp = PositionGetDouble(POSITION_TP);
+                        ExtTrade.PositionModify(ticket, newSL, tp);
+                     }
+                  }
+               }
+            }
+         }
+      }
+   }
+}
+
+//+------------------------------------------------------------------+
+//| Account Equity High                                              |
+//+------------------------------------------------------------------+
+double AccountEquityHigh()
+{
+   if (CountTrades() == 0)
+      gd_368 = AccountInfoDouble(ACCOUNT_EQUITY);
+   if (gd_368 < gd_376)
+      gd_368 = gd_376;
+   else
+      gd_368 = AccountInfoDouble(ACCOUNT_EQUITY);
+   gd_376 = AccountInfoDouble(ACCOUNT_EQUITY);
+   return (gd_368);
+}
+
+//+------------------------------------------------------------------+
+//| Find Last Buy Price                                              |
+//+------------------------------------------------------------------+
+double FindLastBuyPrice()
+{
+   double l_ord_open_price_0 = 0;
+   ulong l_ticket_8 = 0;
+   ulong l_ticket_20 = 0;
+   for (int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong ticket = PositionGetTicket(i);
+      if (PositionSelectByTicket(ticket))
+      {
+         if (PositionGetString(POSITION_SYMBOL) != _Symbol ||
+             PositionGetInteger(POSITION_MAGIC) != g_magic_208)
+            continue;
+         if (PositionGetString(POSITION_SYMBOL) == _Symbol &&
+             PositionGetInteger(POSITION_MAGIC) == g_magic_208 &&
+             PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)
+         {
+            l_ticket_8 = ticket;
+            if (l_ticket_8 > l_ticket_20)
+            {
+               l_ord_open_price_0 = PositionGetDouble(POSITION_PRICE_OPEN);
+               l_ticket_20 = l_ticket_8;
+            }
+         }
+      }
+   }
+   return (l_ord_open_price_0);
+}
+
+//+------------------------------------------------------------------+
+//| Find Last Sell Price                                             |
+//+------------------------------------------------------------------+
+double FindLastSellPrice()
+{
+   double l_ord_open_price_0 = 0;
+   ulong l_ticket_8 = 0;
+   ulong l_ticket_20 = 0;
+   for (int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong ticket = PositionGetTicket(i);
+      if (PositionSelectByTicket(ticket))
+      {
+         if (PositionGetString(POSITION_SYMBOL) != _Symbol ||
+             PositionGetInteger(POSITION_MAGIC) != g_magic_208)
+            continue;
+         if (PositionGetString(POSITION_SYMBOL) == _Symbol &&
+             PositionGetInteger(POSITION_MAGIC) == g_magic_208 &&
+             PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL)
+         {
+            l_ticket_8 = ticket;
+            if (l_ticket_8 > l_ticket_20)
+            {
+               l_ord_open_price_0 = PositionGetDouble(POSITION_PRICE_OPEN);
+               l_ticket_20 = l_ticket_8;
+            }
+         }
+      }
+   }
+   return (l_ord_open_price_0);
+}
+
+//+------------------------------------------------------------------+
+//| Get Last Lot Size                                                |
+//+------------------------------------------------------------------+
+double GetLastLotSize()
+{
+   double lastLotSize = 0;
+   for (int i = PositionsTotal() - 1; i >= 0; i--)
+   {
+      ulong ticket = PositionGetTicket(i);
+      if (PositionSelectByTicket(ticket))
+      {
+         if (PositionGetString(POSITION_SYMBOL) != _Symbol ||
+             PositionGetInteger(POSITION_MAGIC) != g_magic_208)
+            continue;
+         lastLotSize = PositionGetDouble(POSITION_VOLUME);
+         break;
+      }
+   }
+   return lastLotSize;
+}
+
+//+------------------------------------------------------------------+
+//| Download and Parse CSV from Google Sheets                         |
+//+------------------------------------------------------------------+
+bool DownloadCSVFile()
+{
+   Print("Downloading CSV from: ", GoogleSheetURL);
+   string cookie = NULL;
+   string referer = NULL;
+   int timeout = 5000;
+   char post[];
+   char result[];
+   string result_headers;
+   ResetLastError();
+   int res = WebRequest("GET", GoogleSheetURL, cookie, referer, timeout, post, 0, result, result_headers);
+   if (res == -1)
+   {
+      int error = GetLastError();
+      Print("ERROR: WebRequest failed. Error code: ", error);
+      if (error == 4060)
+      {
+         Print("ERROR: URL not allowed. Please add URL to Tools -> Options -> Expert Advisors -> Allow WebRequest");
+         Print("Add this URL: https://docs.google.com");
+         Alert("Please add https://docs.google.com to allowed URLs in MT5 settings!");
+      }
+      return false;
+   }
+   if (res == 200)
+   {
+      string content = CharArrayToString(result, 0, WHOLE_ARRAY, CP_UTF8);
+      bool success = ParseCSVFromMemory(content);
+      content = "";
+      ArrayResize(result, 0);
+      if (success)
+      {
+         Print("CSV data parsed successfully. Total records: ", totalRecords);
+         return true;
+      }
+      else
+      {
+         Print("ERROR: Failed to parse CSV data");
+         return false;
+      }
+   }
+   else
+   {
+      Print("ERROR: HTTP Error Code: ", res);
+      return false;
+   }
+   return false;
+}
+
+//+------------------------------------------------------------------+
+//| Parse CSV from Memory                                            |
+//+------------------------------------------------------------------+
+bool ParseCSVFromMemory(string csvContent)
+{
+   totalRecords = 0;
+   ArrayResize(csvRecords, 0);
+   string lines[];
+   int lineCount = StringSplit(csvContent, '\n', lines);
+   if (lineCount < 2)
+   {
+      Print("ERROR: CSV content is empty or invalid");
+      return false;
+   }
+   Print("CSV Header: ", lines[0]);
+   for (int i = 1; i < lineCount; i++)
+   {
+      string line = lines[i];
+      StringTrimRight(line);
+      StringTrimLeft(line);
+      if (StringLen(line) > 0)
+      {
+         string fields[];
+         int count = StringSplit(line, ',', fields);
+         if (count >= 6)
+         {
+            ArrayResize(csvRecords, totalRecords + 1);
+            csvRecords[totalRecords].username = fields[2];
+            csvRecords[totalRecords].passwordHash = fields[3];
+            csvRecords[totalRecords].expDate = StringToTime(fields[5]);
+            totalRecords++;
+         }
+      }
+   }
+   ArrayResize(lines, 0);
+   return totalRecords > 0;
+}
+
+//+------------------------------------------------------------------+
+//| Validate Username, Password and Expiry Date                      |
+//+------------------------------------------------------------------+
+bool ValidateCSVUser(string inputUsername, string inputPassword)
+{
+   if (StringLen(inputUsername) == 0 || StringLen(inputPassword) == 0)
+   {
+      Print("ERROR: Username or Password is empty");
+      return false;
+   }
+   string inputPasswordHash = MD5Hash(inputPassword);
+   Print("Using MD5 hash: ", StringSubstr(inputPasswordHash, 0, 8), "...");
+   Print("inputPasswordHash: ", inputPasswordHash);
+   for (int i = 0; i < totalRecords; i++)
+   {
+      if (csvRecords[i].username == inputUsername && csvRecords[i].passwordHash == inputPasswordHash)
+      {
+         Print("User found: ", inputUsername);
+         datetime currentTime = TimeCurrent();
+         datetime expireDate = csvRecords[i].expDate;
+         Print("Current Time: ", TimeToString(currentTime, TIME_DATE | TIME_MINUTES));
+         Print("Expire Date: ", TimeToString(expireDate, TIME_DATE | TIME_MINUTES));
+         if (currentTime > expireDate)
+         {
+            Print("ERROR: Account expired");
+            Alert("Account Expired! Please renew subscription.");
+            isCSVAuthenticated = false;
+            return false;
+         }
+         else
+         {
+            csvDaysRemaining = (int)((expireDate - currentTime) / 86400);
+            Print("SUCCESS: Account valid. Days remaining: ", csvDaysRemaining);
+            isCSVAuthenticated = true;
+            return true;
+         }
+      }
+   }
+   Print("ERROR: Username or Password is incorrect");
+   Alert("Login Failed: Invalid Username or Password");
+   return false;
+}
+
+//+------------------------------------------------------------------+
+//| Display Info                                                     |
+//+------------------------------------------------------------------+
+void Display_Info()
+{
+   string BrokerTime = TimeToString(TimeCurrent(), TIME_DATE | TIME_SECONDS);
+   string LocalComputerTime = TimeToString(TimeLocal(), TIME_DATE | TIME_SECONDS);
+   string csvStatus = "";
+   if (StringLen(CSV_Password) > 0)
+   {
+      if (isCSVAuthenticated)
+         csvStatus = "CSV Auth: Account " + IntegerToString(AccountInfoInteger(ACCOUNT_LOGIN)) + " (" + IntegerToString(csvDaysRemaining) + " days left)";
+      else
+         csvStatus = "CSV Auth: FAILED";
+   }
+   string trendSignal = "Analyzing...";
+   if (CountTrades() == 0)
+   {
+      double h4_0 = GetClose(PERIOD_H4, 0);
+      double h4_1 = GetClose(PERIOD_H4, 1);
+      double h1_0 = GetClose(PERIOD_H1, 0);
+      double h1_1 = GetClose(PERIOD_H1, 1);
+      if (h4_0 > h4_1 && h1_0 > h1_1)
+         trendSignal = "BULLISH (Buy Ready)";
+      else if (h4_0 < h4_1 && h1_0 < h1_1)
+         trendSignal = "BEARISH (Sell Ready)";
+      else
+         trendSignal = "SIDEWAYS (Waiting)";
+   }
+   else
+      trendSignal = "In Position (" + IntegerToString(CountTrades()) + " orders)";
+
+   string runawayStatus = "";
+   if (UseRunawayClose)
+   {
+      runawayStatus = "RunawayClose: ON (Trigger=" + IntegerToString((int)TriggerDistance) + " pts)";
+      if (CountTrades() >= MaxTrades)
+         runawayStatus += " [MAX REACHED]";
+   }
+   else
+      runawayStatus = "RunawayClose: OFF";
+
+   Comment(
+       "Forex Account Server:", AccountInfoString(ACCOUNT_SERVER),
+       "\n", csvStatus != "" ? csvStatus + "\n" : "",
+       "Lots: ", NormalizeDouble(GetLastLotSize(), 2), " OrderTotal=", CountTrades(),
+       " / MaxTrades=", MaxTrades,
+       "\n", runawayStatus,
+       "\n", "Symbol: ", _Symbol, "  Account: ",
+       NormalizeDouble(AccountInfoDouble(ACCOUNT_BALANCE), 2),
+       "  MARGIN:", NormalizeDouble(AccountInfoDouble(ACCOUNT_MARGIN), 2),
+       "  FREEMARGIN:", NormalizeDouble(AccountInfoDouble(ACCOUNT_MARGIN_FREE), 2),
+       "\n", "Trend Signal: ", trendSignal,
+       "\n", "SellPrice: ", FindLastSellPrice(), " BuyPrice: ", FindLastBuyPrice(),
+       "\n", "AvgEntry: ", DoubleToString(CalculateAverageEntryPrice(), _Digits),
+       "\n", "BrokerTime: ", BrokerTime,
+       "\n", "LocalComputerTime: ", LocalComputerTime,
+       "\n", "EA Version: V5.00 - Runaway Close System",
+       "\n");
+}
+//+------------------------------------------------------------------+

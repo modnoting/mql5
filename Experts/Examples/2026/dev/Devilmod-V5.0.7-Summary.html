@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Devilmod-Robot-2026 V5.0.7 - สรุปวิเคราะห์</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #0a0a1a; color: #e0e0e0; padding: 20px; }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h1 { text-align: center; color: #ff4444; font-size: 28px; margin-bottom: 5px; }
+  h2 { text-align: center; color: #888; font-size: 14px; margin-bottom: 30px; }
+  .section { background: #111122; border: 1px solid #333; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+  .section h3 { color: #00ccff; font-size: 18px; margin-bottom: 12px; border-bottom: 1px solid #333; padding-bottom: 8px; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; margin-left: 8px; }
+  .badge-active { background: #00cc66; color: #000; }
+  .badge-off { background: #ff4444; color: #fff; }
+  .badge-warn { background: #ffaa00; color: #000; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #222; font-size: 13px; }
+  th { color: #00ccff; background: #0a0a1a; }
+  td { color: #ccc; }
+  .param-name { color: #ff9900; font-family: monospace; }
+  .param-val { color: #66ff66; font-family: monospace; }
+  .flow-box { background: #0a0a1a; border: 1px solid #444; border-radius: 6px; padding: 12px; margin: 8px 0; font-family: monospace; font-size: 13px; line-height: 1.8; color: #aaa; }
+  .flow-box .step { color: #00ccff; }
+  .flow-box .cond { color: #ffaa00; }
+  .flow-box .action { color: #66ff66; }
+  .warn-box { background: #2a1a00; border: 1px solid #ff6600; border-radius: 6px; padding: 12px; margin: 10px 0; color: #ffcc00; font-size: 13px; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+  .summary-card { background: #0a0a1a; border: 1px solid #333; border-radius: 8px; padding: 15px; }
+  .summary-card h4 { color: #00ccff; margin-bottom: 8px; font-size: 14px; }
+  .summary-card p { color: #aaa; font-size: 13px; line-height: 1.6; }
+  .indicator-list { list-style: none; padding: 0; }
+  .indicator-list li { padding: 6px 0; border-bottom: 1px solid #1a1a2a; font-size: 13px; }
+  .indicator-list li span { color: #ff9900; font-family: monospace; }
+  .risk-meter { height: 8px; background: #222; border-radius: 4px; overflow: hidden; margin-top: 8px; }
+  .risk-fill { height: 100%; border-radius: 4px; }
+  .risk-high { background: linear-gradient(90deg, #ff6600, #ff0000); width: 85%; }
+  .risk-med { background: linear-gradient(90deg, #ffaa00, #ff6600); width: 60%; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>Devilmod-Robot-2026 V5.0.7</h1>
+<h2>XAUUSD Martingale EA - สรุปวิเคราะห์การทำงาน</h2>
+
+<!-- ===== ภาพรวม ===== -->
+<div class="section">
+  <h3>ภาพรวม (Overview)</h3>
+  <p style="color:#aaa; font-size:14px; line-height:1.8;">
+    EA ประเภท <b style="color:#ff4444">Martingale</b> สำหรับเทรด XAUUSD (ทองคำ)<br>
+    ทำงานบนหลักการ "เพิ่มจำนวนLot ทบต้นเมื่อขาดทุน" โดยมีระบบ Risk Management หลายชั้นป้องกันการล้างพอร์ต<br>
+    ใช้ <b>6 ตัวบ่งชี้ (Indicators)</b> บน 3 Timeframe (M1, M5, H1) สำหรับเข้า Order แรก<br>
+    จากนั้นจะใช้ Martingale ทบต้นไปเรื่อยๆ จนกว่าจะมีกำไรรวม
+  </p>
+  <div class="summary-grid">
+    <div class="summary-card">
+      <h4>สกุลเงิน</h4>
+      <p>XAUUSD (ทองคำ)</p>
+    </div>
+    <div class="summary-card">
+      <h4>ประเภท EA</h4>
+      <p>Martingale + Grid Recovery</p>
+    </div>
+    <div class="summary-card">
+      <h4>Lot เริ่มต้น</h4>
+      <p style="color:#66ff66;">0.01</p>
+    </div>
+    <div class="summary-card">
+      <h4>ตัวคูณ Lot (Martingale)</h4>
+      <p style="color:#ff9900;">x 1.2</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ระบบที่ใช้งานอยู่ ===== -->
+<div class="section">
+  <h3>ระบบที่ใช้งานอยู่ (Active Systems) <span class="badge badge-active">ACTIVE</span></h3>
+  <table>
+    <tr><th>#</th><th>ระบบ</th><th>สถานะ</th><th>ค่า Default</th><th>คำอธิบาย</th></tr>
+    <tr>
+      <td>1</td>
+      <td><b>Martingale System</b></td>
+      <td><span class="badge badge-active">ACTIVE</span></td>
+      <td class="param-val">x1.2, Max 15 trades</td>
+      <td>เพิ่ม Lot ทบต้น 1.2 เท่าทุกครั้งที่เปิด order ใหม่<br>สูตร: <code style="color:#ff9900">Lot = 0.01 × 1.2^layer</code><br>สูงสุด 15 orders</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td><b>Dynamic SL (ATR)</b></td>
+      <td><span class="badge badge-active">ACTIVE</span></td>
+      <td class="param-val">ATR(14) × 1.5</td>
+      <td>คำนวณ Stop Loss ตามความผันผวนจริงของตลาด<br>SL = ATR × 1.5 (min 100 pts, max 3000 pts)</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td><b>Trailing Stop</b></td>
+      <td><span class="badge badge-active">ACTIVE</span></td>
+      <td class="param-val">Trigger 2500, Trail 1000</td>
+      <td>เลื่อน SL ตามราคาเมื่อ profit ถึง 2500 pts<br>ล็อค profit ทุก 1000 pts</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td><b>Adaptive Distance</b></td>
+      <td><span class="badge badge-active">ACTIVE</span></td>
+      <td class="param-val">1200 pts base</td>
+      <td>ลดระยะห่างระหว่าง order เมื่อจำนวน trades เพิ่มขึ้น<br>
+        ≤5 trades = 100% (1200 pts)<br>
+        ≤10 trades = 67% (804 pts)<br>
+        ≤15 trades = 42% (504 pts)<br>
+        >15 trades = 25% (300 pts)
+      </td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td><b>Circuit Breaker</b></td>
+      <td><span class="badge badge-active">ACTIVE</span></td>
+      <td class="param-val">5% equity</td>
+      <td>หยุดทันทีเมื่อขาดทุนรวมเกิน 5% ของ equity<br>ป้องกันการล้างพอร์ต</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td><b>Trading Hours Filter</b></td>
+      <td><span class="badge badge-active">ACTIVE</span></td>
+      <td class="param-val">จันทร์ 7-10, อังคาร-พฤหัส 1-15, ศุกร์ 1-3</td>
+      <td>จำกัดเวลาเทรดตามวัน<br>วันหยุด (เสาร์-อาทิตย์) ไม่เทรด</td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td><b>Opposite Martingale (Recovery)</b></td>
+      <td><span class="badge badge-active">ACTIVE</span></td>
+      <td class="param-val">Trigger 2000 pts, Max 5 layers</td>
+      <td>เมื่อขาดทุนฝั่งใด >= 2000 pts<br>เปิด order ตรงข้ามเพื่อ recover<br>Lot = base × 1.2^layer (max 2.0)<br>Cooldown 10 นาที</td>
+    </tr>
+    <tr>
+      <td>8</td>
+      <td><b>CSV Authentication</b></td>
+      <td><span class="badge badge-active">ACTIVE*</span></td>
+      <td class="param-val">Google Sheets</td>
+      <td>ตรวจสอบสิทธิ์ผ่าน Google Sheets<br>รหัสผ่าน MD5 hash<br>*ทำงานเมื่อกำหนด CSV_Password</td>
+    </tr>
+    <tr>
+      <td>9</td>
+      <td><b>Timezone Detection</b></td>
+      <td><span class="badge badge-active">ACTIVE</span></td>
+      <td class="param-val">Auto</td>
+      <td>ตรวจจับ time zone อัตโนมัติ<br>ปรับเวลาเทรดตาม server</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ===== ระบบที่ปิดอยู่ ===== -->
+<div class="section">
+  <h3>ระบบที่ปิดอยู่ (Disabled Systems) <span class="badge badge-off">OFF</span></h3>
+  <table>
+    <tr><th>#</th><th>ระบบ</th><th>สถานะ</th><th>ค่า Default</th><th>คำอธิบาย</th></tr>
+    <tr>
+      <td>1</td>
+      <td><b>Trend Filter (EMA50/200)</b></td>
+      <td><span class="badge badge-off">OFF</span></td>
+      <td class="param-val">UseTrendFilter = false</td>
+      <td>กรองแนวโน้มด้วย EMA50/EMA200 บน H1<br>เมื่อปิด = เข้า order ตาม signal ปกติ<br>เมื่อเปิด = เข้าเฉพาะ direction ตรงกับ trend<br><br>
+      <div class="warn-box">⚠ ปิดอยู่: EA จะเข้า Buy/Sell ทั้งที่ trend ย้อนทางได้<br>เพิ่มความเสี่ยงในการขาดทุน</div>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<!-- ===== Entry Signal ===== -->
+<div class="section">
+  <h3>สัญญาณเข้า Order แรก (Entry Conditions)</h3>
+  <p style="color:#aaa; font-size:13px; margin-bottom:10px;">ใช้ 3 indicators รวมกัน เพื่อเปิด order แรก (ไม่ใช่ Martingale layer)</p>
+  <table>
+    <tr><th>Layer</th><th>Indicator</th><th>Timeframe</th><th>เงื่อนไข Buy</th><th>เงื่อนไข Sell</th></tr>
+    <tr>
+      <td rowspan="3"><b>Layer 1<br><span style="color:#66ff66;">Signal</span></b></td>
+      <td><span class="param-name">Stochastic</span></td>
+      <td>M5</td>
+      <td>%K > 30 และกำลังขึ้น</td>
+      <td>%K < 70 และกำลังลง</td>
+    </tr>
+    <tr>
+      <td><span class="param-name">MACD</span></td>
+      <td>M1</td>
+      <td>MACD line > previous (rising)</td>
+      <td>MACD line < previous (falling)</td>
+    </tr>
+    <tr>
+      <td><span class="param-name">RSI</span></td>
+      <td>H1</td>
+      <td>RSI > previous (rising)</td>
+      <td>RSI < previous (falling)</td>
+    </tr>
+    <tr>
+      <td><b>Layer 2<br><span style="color:#ffaa00;">Filter*</span></b></td>
+      <td><span class="param-name">EMA50 / EMA200</span></td>
+      <td>H1</td>
+      <td>EMA50 > EMA200 และ Price > EMA50</td>
+      <td>EMA50 < EMA200 และ Price < EMA50</td>
+    </tr>
+  </table>
+  <p style="color:#666; font-size:12px; margin-top:8px;">*Layer 2 (Trend Filter) ปิดอยู่ในขณะนี้</p>
+</div>
+
+<!-- ===== Flow Diagram ===== -->
+<div class="section">
+  <h3>แผนภาพการทำงาน (Flow Diagram)</h3>
+  <div class="flow-box">
+    <span class="step">[START]</span> OnTick()<br>
+    &nbsp;&nbsp;├─ <span class="cond">เช็ค CSV Auth</span> → ถ้า fail = หยุด<br>
+    &nbsp;&nbsp;├─ <span class="cond">เช็ควันหยุด</span> (เสาร์-อาทิตย์) → หยุด<br>
+    &nbsp;&nbsp;├─ <span class="cond">เช็คเวลาเทรด</span> → นอกเวลา = หยุด (ถ้าไม่มี position)<br>
+    &nbsp;&nbsp;├─ <span class="action">Trailing Stop</span> → เลื่อน SL ทุก order ที่มีกำไร<br>
+    &nbsp;&nbsp;├─ <span class="action">Check Opposite Martingale</span> → ถ้า loss >= 2000 pts → เปิด Recovery<br>
+    &nbsp;&nbsp;├─ <span class="cond">เช็ค Circuit Breaker</span> → loss > 5% equity = หยุด<br>
+    &nbsp;&nbsp;├─ <span class="cond">นับจำนวน trades ที่เปิดอยู่</span><br>
+    &nbsp;&nbsp;│<br>
+    &nbsp;&nbsp;├─ <span class="cond">ถ้ามี trades อยู่ (1-15)</span><br>
+    &nbsp;&nbsp;│&nbsp;&nbsp;├─ คำนวณ Adaptive Distance<br>
+    &nbsp;&nbsp;│&nbsp;&nbsp;├─ ถ้าราคาห่างจาก last order พอ → <span class="action">เปิด Martingale layer ใหม่</span><br>
+    &nbsp;&nbsp;│&nbsp;&nbsp;└─ ถ้าไม่พอ → รอ<br>
+    &nbsp;&nbsp;│<br>
+    &nbsp;&nbsp;├─ <span class="cond">ถ้าไม่มี trades (First Entry)</span><br>
+    &nbsp;&nbsp;│&nbsp;&nbsp;├─ เช็ค Signal: Stoch M5 + MACD M1 + RSI H1<br>
+    &nbsp;&nbsp;│&nbsp;&nbsp;├─ <span class="cond">ถ้ามีสัญญาณ Buy</span> → <span class="action">เปิด Buy ด้วย Dynamic SL</span><br>
+    &nbsp;&nbsp;│&nbsp;&nbsp;└─ <span class="cond">ถ้ามีสัญญาณ Sell</span> → <span class="action">เปิด Sell ด้วย Dynamic SL</span><br>
+    &nbsp;&nbsp;│<br>
+    &nbsp;&nbsp;└─ <span class="action">[END]</span> รอ tick ถัดไป
+  </div>
+</div>
+
+<!-- ===== Indicators ===== -->
+<div class="section">
+  <h3>ตัวบ่งชี้ที่ใช้ (Indicators)</h3>
+  <ul class="indicator-list">
+    <li><span>iMACD</span> — M1, Fast 12, Slow 26, Signal 9 — สำหรับ entry signal ระยะสั้น</li>
+    <li><span>iStochastic</span> — M5, K 14, D 3, Slowing 3 — สำหรับจุดเข้าที่ดี</li>
+    <li><span>iRSI</span> — H1, Period 14 — ยืนยัน momentum บน TF ใหญ่</li>
+    <li><span>iMA (EMA50)</span> — H1, Period 50 — กรองแนวโน้ม (ปิดอยู่)</li>
+    <li><span>iMA (EMA200)</span> — H1, Period 200 — กรองแนวโน้ม (ปิดอยู่)</li>
+    <li><span>iATR</span> — H1, Period 14 — คำนวณ Dynamic SL</li>
+  </ul>
+</div>
+
+<!-- ===== Risk ===== -->
+<div class="section">
+  <h3>ความเสี่ยง (Risk Assessment)</h3>
+  <div class="summary-grid">
+    <div class="summary-card">
+      <h4>ระดับความเสี่ยง</h4>
+      <p style="color:#ff4444; font-size:20px; font-weight:bold;">สูง (HIGH)</p>
+      <div class="risk-meter"><div class="risk-fill risk-high"></div></div>
+    </div>
+    <div class="summary-card">
+      <h4>ประเภทความเสี่ยง</h4>
+      <p>Martingale + Recovery Grid<br>ขาดทุนทบต้น 1.2x ทุก layer</p>
+    </div>
+  </div>
+  <div class="warn-box" style="margin-top:15px;">
+    <b>⚠ จุดสังเกต:</b><br>
+    • Trend Filter <b>ปิดอยู่</b> — EA ไม่เช็คแนวโน้มก่อนเข้า order แรก<br>
+    • Opposite Martingale อาจเพิ่มความเสี่ยงเมื่อ loss ลึก<br>
+    • Max 15 trades + Recovery layers อาจใช้ margin สูงมาก<br>
+    • Circuit Breaker 5% ช่วยป้องกัน แต่ถ้า margin ไม่พอจะ margin call ก่อน<br>
+    • ไม่พบการตั้งค่า max lot cap โดยรวม (เฉพาะ Opposite = 2.0)
+  </div>
+</div>
+
+<!-- ===== Config ===== -->
+<div class="section">
+  <h3>พารามิเตอร์สำคัญ (Key Parameters)</h3>
+  <table>
+    <tr><th>ชื่อตัวแปร</th><th>ค่า</th><th>คำอธิบาย</th></tr>
+    <tr><td class="param-name">Lots</td><td class="param-val">0.01</td><td>Lot เริ่มต้น</td></tr>
+    <tr><td class="param-name">gd_88 (Multiplier)</td><td class="param-val">1.2</td><td>ตัวคูณ Martingale</td></tr>
+    <tr><td class="param-name">MaxTrades</td><td class="param-val">15</td><td>จำนวน order สูงสุด</td></tr>
+    <tr><td class="param-name">distance</td><td class="param-val">1200 pts</td><td>ระยะห่างเริ่มต้นระหว่าง orders</td></tr>
+    <tr><td class="param-name">g_pips_120 (TP)</td><td class="param-val">3100 pts</td><td>Take Profit</td></tr>
+    <tr><td class="param-name">gd_144 (Default SL)</td><td class="param-val">1000 pts</td><td>SL เริ่มต้น (เมื่อปิด Dynamic SL)</td></tr>
+    <tr><td class="param-name">ATR_Multiplier</td><td class="param-val">1.5</td><td>ตัวคูณ ATR สำหรับ Dynamic SL</td></tr>
+    <tr><td class="param-name">CircuitBreakerPct</td><td class="param-val">5.0%</td><td>หยุดเมื่อขาดทุนเกิน % ของ equity</td></tr>
+    <tr><td class="param-name">OppositeTriggerPts</td><td class="param-val">2000 pts</td><td>จุดทริกเกอร์ Opposite Martingale</td></tr>
+    <tr><td class="param-name">OppositeMaxLots</td><td class="param-val">2.0</td><td>Lot สูงสุดของ Recovery order</td></tr>
+    <tr><td class="param-name">OppositeMaxLayers</td><td class="param-val">5</td><td>จำนวน Recovery layers สูงสุด</td></tr>
+    <tr><td class="param-name">g_slippage_96</td><td class="param-val">5.0</td><td>Slippage ที่ยอมรับ</td></tr>
+    <tr><td class="param-name">g_magic_208</td><td class="param-val">0</td><td>Magic Number</td></tr>
+  </table>
+</div>
+
+<!-- ===== Lot Calculation ===== -->
+<div class="section">
+  <h3>ตัวอย่างการคำนวณ Lot (Martingale)</h3>
+  <table>
+    <tr><th>Layer</th><th>Lot</th><th>Distance (Adaptive)</th><th>SL (Dynamic ATR)</th></tr>
+    <tr><td>0 (First)</td><td class="param-val">0.01</td><td>-</td><td>~ATR×1.5</td></tr>
+    <tr><td>1</td><td class="param-val">0.012</td><td>1200 pts</td><td>~ATR×1.5</td></tr>
+    <tr><td>2</td><td class="param-val">0.014</td><td>1200 pts</td><td>~ATR×1.5</td></tr>
+    <tr><td>3</td><td class="param-val">0.017</td><td>1200 pts</td><td>~ATR×1.5</td></tr>
+    <tr><td>5</td><td class="param-val">0.025</td><td>1200 pts</td><td>~ATR×1.5</td></tr>
+    <tr><td>10</td><td class="param-val">0.062</td><td>804 pts</td><td>~ATR×1.5</td></tr>
+    <tr><td>15</td><td class="param-val">0.154</td><td>300 pts</td><td>~ATR×1.5</td></tr>
+  </table>
+  <p style="color:#666; font-size:12px; margin-top:8px;">*ค่า ATR ขึ้นอยู่กับสภาวะตลาดจริง</p>
+</div>
+
+<!-- ===== Summary ===== -->
+<div class="section">
+  <h3>สรุป (Summary)</h3>
+  <div class="summary-grid">
+    <div class="summary-card">
+      <h4 style="color:#66ff66;">จุดแข็ง</h4>
+      <p>
+        ✓ Dynamic SL ปรับตามตลาด<br>
+        ✓ Circuit Breaker ป้องกัน margin call<br>
+        ✓ Adaptive Distance ลดความเสี่ยง<br>
+        ✓ Opposite Martingale ช่วย recover<br>
+        ✓ Trading Hours จำกัดเวลาเทรด
+      </p>
+    </div>
+    <div class="summary-card">
+      <h4 style="color:#ff4444;">จุดอ่อน</h4>
+      <p>
+        ✗ Trend Filter ปิดอยู่ = ขาดทุนง่าย<br>
+        ✗ Martingale = ความเสี่ยงสูงโดยธรรมชาติ<br>
+        ✗ ไม่มี max lot cap รวม (เฉพาะ Opposite)<br>
+        ✗ Recovery layers ซ้อนกับ Martingale layers<br>
+        ✗ ไม่มี daily loss limit
+      </p>
+    </div>
+  </div>
+</div>
+
+<p style="text-align:center; color:#555; font-size:11px; margin-top:20px;">
+  Generated: 03 Aug 2026 | Devilmod-Robot-2026 V5.0.7 Analysis
+</p>
+
+</div>
+</body>
+</html>
